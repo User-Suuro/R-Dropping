@@ -1,8 +1,8 @@
 Imports Guna.UI2.WinForms
 Public Enum ButtonVisibility
-    Always          ' Always visible, regardless of selection
+    Always          ' Always visible
     OnSelection     ' Show only when a row is selected
-    OnNoSelection   ' Show only when nothing is selected (default for Add, Refresh)
+    OnNoSelection   ' Show only when nothing is selected 
 End Enum
 
 Public Class BaseDGV
@@ -43,6 +43,7 @@ Public Class BaseDGV
     Private _currentPage As Integer = 1
     Private _pageSize As Integer = 10
     Private _isPaging As Boolean = False
+    Private _isFiltering As Boolean = False
 
     ' ── Properties 
     Public ReadOnly Property DataGridView As Guna2DataGridView
@@ -272,9 +273,9 @@ Public Class BaseDGV
         _paginationLayout.Controls.Add(rightPanel, 2, 0)
         _paginationPanel.Controls.Add(_paginationLayout)
 
-        ' ════════════════════════════════════════════════
+        ' 
         '  DGV
-        ' ════════════════════════════════════════════════
+        ' 
         With _dgv
             .Dock = DockStyle.Fill
             .BackgroundColor = Colors.Background
@@ -323,13 +324,13 @@ Public Class BaseDGV
         Me.Controls.Add(_toolbarPanel)
     End Sub
 
-    ' ── Event Wiring ──────────────────────────────────────────────────────────
+    ' Event Wiring 
     Private Sub SetupEventHandlers()
         ' DGV
         AddHandler _dgv.CellClick, AddressOf OnDgvCellClick
         AddHandler _dgv.DataBindingComplete, AddressOf OnDataBindingComplete
 
-        ' Search — button click and Enter key
+        ' Search button click and Enter key
         AddHandler _searchBtn.Click, AddressOf OnSearchClicked
         AddHandler _searchInput.KeyDown, AddressOf OnSearchKeyDown
 
@@ -339,20 +340,20 @@ Public Class BaseDGV
         AddHandler _nextPageBtn.Click, Sub(s, e) GoToPage(_currentPage + 1)
         AddHandler _lastPageBtn.Click, Sub(s, e) GoToPage(TotalPages)
 
-        ' Page size input — numeric only, applies on Enter or focus leave
+        ' Page size input numeric 
         AddHandler _pageSizeInput.KeyPress, AddressOf OnPageSizeKeyPress
         AddHandler _pageSizeInput.KeyDown, AddressOf OnPageSizeKeyDown
         AddHandler _pageSizeInput.Leave, AddressOf OnPageSizeLeave
     End Sub
 
-    ' ── DGV Handlers
+    '  DGV Handlers
     Private Sub OnDgvCellClick(sender As Object, e As DataGridViewCellEventArgs)
         If e.RowIndex < 0 Then Return
         RefreshButtonVisibility()
     End Sub
 
     Private Sub OnDataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs)
-        If _isPaging Then Return
+        If _isPaging OrElse _isFiltering Then Return
         _dgv.ClearSelection()
         RefreshButtonVisibility()
     End Sub
@@ -379,7 +380,6 @@ Public Class BaseDGV
         .Visibility = visibility
     })
 
-        ' Keep a consistent margin
         If btn.Margin = Padding.Empty Then
             btn.Margin = New Padding(6, 0, 0, 0)
         End If
@@ -394,7 +394,7 @@ Public Class BaseDGV
         RefreshButtonVisibility()
     End Sub
 
-    ' ── Search Handlers
+    '  Search Handlers
     Private Sub OnSearchClicked(sender As Object, e As EventArgs)
         PerformSearch(_searchInput.Text)
     End Sub
@@ -406,7 +406,7 @@ Public Class BaseDGV
         End If
     End Sub
 
-    ' ── Page Size Handlers 
+    '  Page Size Handlers 
     Private Sub OnPageSizeKeyPress(sender As Object, e As KeyPressEventArgs)
         If Not Char.IsDigit(e.KeyChar) AndAlso e.KeyChar <> ControlChars.Back Then
             e.Handled = True
@@ -436,7 +436,7 @@ Public Class BaseDGV
         ApplyPage()
     End Sub
 
-    ' ── Data Binding ──────────────────────────────────────────────────────────
+    '  Data Binding 
     Public Sub BindDataSource(dt As DataTable)
         _originalDataTable = dt.Copy()
         _filteredDataTable = dt.Copy()
@@ -444,7 +444,7 @@ Public Class BaseDGV
         ApplyPage()
     End Sub
 
-    ' ── Search ────────────────────────────────────────────────────────────────
+    '  Search 
     Private Sub PerformSearch(query As String)
         If _originalDataTable Is Nothing Then Return
 
@@ -468,7 +468,7 @@ Public Class BaseDGV
         ApplyPage()
     End Sub
 
-    ' ── Pagination
+    '  Pagination
     Private Sub GoToPage(page As Integer)
         Dim clamped As Integer = Math.Max(1, Math.Min(page, TotalPages))
         If clamped = _currentPage Then Return
@@ -520,7 +520,7 @@ Public Class BaseDGV
         If _noResultsLabel.Visible Then _noResultsLabel.BringToFront()
     End Sub
 
-    ' ── Public Helpers
+    '  Public Helpers
     Public Function GetSelectedItem() As Dictionary(Of String, Object)
         If _dgv.SelectedRows.Count = 0 Then Return Nothing
         Dim row As DataGridViewRow = _dgv.SelectedRows(0)
@@ -570,16 +570,36 @@ Public Class BaseDGV
     End Sub
 
     Public Sub FilterData(searchText As String, searchParam As String)
-        If _dgv.DataSource Is Nothing Then Exit Sub
+        Try
+            If _dgv.DataSource Is Nothing Then Exit Sub
 
-        Dim dt As DataTable = DirectCast(_dgv.DataSource, DataTable)
+            Dim dt As DataTable = DirectCast(_dgv.DataSource, DataTable)
 
-        If String.IsNullOrEmpty(searchText) Then
-            dt.DefaultView.RowFilter = ""
-        Else
-            ' Search param sample: "Name LIKE '%{0}%' OR Email LIKE '%{0}%'"
-            dt.DefaultView.RowFilter = String.Format(searchParam, searchText)
-        End If
+            If String.IsNullOrEmpty(searchText) Then
+                dt.DefaultView.RowFilter = ""
+            Else
+                _isFiltering = True
+                ' param sample: "Name LIKE '%{0}%' OR Email LIKE '%{0}%'"
+                dt.DefaultView.RowFilter = String.Format(searchParam, searchText)
+                If _dgv.Rows.Count > 0 Then
+                    _dgv.Rows(0).Selected = True
+                    RefreshButtonVisibility()
+                End If
+
+                _isFiltering = False  
+
+            End If
+        Catch ex As Exception
+            Dim dlg = New BaseDialog()
+
+            DialogTypes.Apply(dlg,
+                DialogType.Error,
+                "Unable to Search this Value",
+                ex.Message)
+
+            dlg.ShowDialog()
+        End Try
+
     End Sub
 
 End Class

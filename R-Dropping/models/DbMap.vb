@@ -56,5 +56,30 @@ Public Class Storage
     Public Shared ReadOnly capacity_limit As String = "capacity_limit"
 End Class
 
-' Derived Entities
+' Derived Entities (Transactions)
 
+Public Class Item
+    Public Shared ReadOnly table_name As String = "item"
+    Public Shared ReadOnly id As String = "item_id"
+    Public Shared ReadOnly managed_by As String = "managed_by"
+    Public Shared ReadOnly pricing_id As String = "pricing_id"
+    Public Shared ReadOnly buyer_id As String = "buyer_id"
+    Public Shared ReadOnly name As String = "item_name"
+    Public Shared ReadOnly desc As String = "description"
+    Public Shared ReadOnly img_path As String = "image_path"
+    Public Shared ReadOnly drop_off_date As String = "drop_off_date"
+    Public Shared ReadOnly pickup_date As String = "pickup_date"
+End Class
+
+Public Class Delivery
+    Public Shared ReadOnly table_name As String = "delivery"
+    Public Shared ReadOnly item As String = "item_id"
+    Public Shared ReadOnly shipping_fee As String = "shipping_fee"
+    Public Shared ReadOnly date_delivered As String = "datetime_delivered"
+End Class
+
+Public Class Stored
+    Public Shared ReadOnly table_name As String = "storage_unit_id"
+    Public Shared ReadOnly item_id As String = "item_id"
+    Public Shared ReadOnly date_stored As String = "date_stored"
+End Class

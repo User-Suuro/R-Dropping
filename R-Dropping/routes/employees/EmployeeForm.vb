@@ -12,6 +12,7 @@ Public Class EmployeeForm
     Private _fieldLastName As ValidationPanel
 
     Private _inpMiddleName As BaseInputPanel
+    Private _fieldMiddleName As ValidationPanel
 
     Private _cbxPosition As BaseComboBox
     Private _cbxPosField As ValidationPanel
@@ -27,7 +28,6 @@ Public Class EmployeeForm
         Me.Dock = DockStyle.Fill
         _id = id
         InitializeComponent()
-        LoadData()
 
         AddHandler Me.Resize, AddressOf CenterSubContainer
         AddHandler _subContainer.SizeChanged, AddressOf CenterSubContainer
@@ -49,12 +49,15 @@ Public Class EmployeeForm
         }
 
         _fieldFirstName = New ValidationPanel(_inpFirstName)
-        _fieldFirstName.SetValidator(New InputValidator().Required())
+        _fieldFirstName.SetValidator(New InputValidator().Required().NoSpecialChar())
 
         ' Middle Name
         _inpMiddleName = New BaseInputPanel() With {
             .LabelText = "Middle Name (optional)"
         }
+
+        _fieldMiddleName = New ValidationPanel(_inpMiddleName)
+        _fieldMiddleName.SetValidator(New InputValidator().NoSpecialChar())
 
         ' Last Name
         _inpLastName = New BaseInputPanel() With {
@@ -62,12 +65,15 @@ Public Class EmployeeForm
         }
 
         _fieldLastName = New ValidationPanel(_inpLastName)
-        _fieldLastName.SetValidator(New InputValidator().Required())
+        _fieldLastName.SetValidator(New InputValidator().Required().NoSpecialChar())
 
         ' Position
         _cbxPosition = New BaseComboBox("Position") With {
             .Placeholder = "Select position...",
-            .SearchEnabled = False
+            .SearchEnabled = False,
+            .Items = New List(Of String) From {
+              "Admin", "Manager", "Staff"
+            }
         }
 
         _cbxPosField = New ValidationPanel(_cbxPosition)
@@ -112,7 +118,7 @@ Public Class EmployeeForm
 
         With _subContainer.Controls
             .Add(_fieldFirstName)
-            .Add(_inpMiddleName)
+            .Add(_fieldMiddleName)
             .Add(_fieldLastName)
             .Add(_cbxPosField)
             .Add(_buttonTable)
@@ -158,7 +164,7 @@ Public Class EmployeeForm
     End Sub
 
     Private Function ValidateAllInputs() As Boolean
-        Return {_fieldFirstName, _fieldLastName, _cbxPosField}.All(Function(f) f.ValidateInput())
+        Return {_fieldFirstName, _fieldMiddleName, _fieldLastName, _cbxPosField}.All(Function(f) f.ValidateInput())
     End Function
 
     Private Async Sub QueryEmployee()
@@ -272,9 +278,4 @@ Public Class EmployeeForm
         _subContainer.Top = (Me.ClientSize.Height - _subContainer.Height) \ 2
     End Sub
 
-    Private Sub LoadData()
-        _cbxPosition.Items = New List(Of String) From {
-          "Admin", "Manager", "Staff"
-        }
-    End Sub
 End Class

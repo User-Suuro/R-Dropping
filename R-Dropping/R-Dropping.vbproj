@@ -141,9 +141,7 @@
     <Compile Include="components\BaseCmb.Designer.vb">
       <DependentUpon>BaseCmb.vb</DependentUpon>
     </Compile>
-    <Compile Include="components\BaseCmb.vb">
-      <SubType>UserControl</SubType>
-    </Compile>
+    <Compile Include="components\BaseCmb.vb" />
     <Compile Include="components\BaseDGV.vb">
       <SubType>Component</SubType>
     </Compile>
@@ -151,6 +149,9 @@
       <DependentUpon>BaseFlowLayout.vb</DependentUpon>
     </Compile>
     <Compile Include="components\BaseFlowLayout.vb">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="components\BaseImagePanel.vb">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="components\BaseInput.vb">
@@ -183,6 +184,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="routes\courier\CourierPage.vb">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="routes\dropoff\DropoffForm.vb">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="routes\employees\EmployeeForm.vb">

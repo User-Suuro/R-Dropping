@@ -44,7 +44,7 @@ Public Class StorageForm
             .LabelText = "Storage Name"
         }
         _storageNameField = New ValidationPanel(_storageNameInp)
-        _storageNameField.SetValidator(New InputValidator().Required())
+        _storageNameField.SetValidator(New InputValidator().Required().NoSpecialChar())
 
         ' Storage Type
 

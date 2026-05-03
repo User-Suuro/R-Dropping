@@ -7,6 +7,7 @@
     Private Sidebar As FlowLayoutPanel
     Private MainContent As Panel
     Private RouteLabel As BaseLabel
+    Private _activeNavBtn As NavBtn = Nothing
 
     Public Shared rootNav As NavigationManager
 
@@ -78,6 +79,10 @@
         Dim pricingBtn As New NavBtn("Pricing", SidebarContainer.Width)
         Dim storageBtn As New NavBtn("Storage", SidebarContainer.Width)
 
+        Dim exitBtn As New NavBtn("Exit", SidebarContainer.Width)
+
+        exitBtn.Dock = DockStyle.Bottom
+
         MainContent = New Panel With {
             .Dock = DockStyle.Fill
         }
@@ -86,6 +91,7 @@
 
         ' set initial page
         rootNav.GoToPage(New EmployeePage())
+        SetActiveNav(employeesBtn)
 
         AddHandler homeBtn.ButtonControl.Click,
         Sub(sender, e)
@@ -94,39 +100,53 @@
 
         AddHandler dropOffBtn.ButtonControl.Click,
         Sub(sender, e)
-            showUnavailablePage()
+            rootNav.GoToPage(New DropOffForm())
+            SetActiveNav(dropOffBtn)
         End Sub
 
         AddHandler employeesBtn.ButtonControl.Click,
         Sub(sender, e)
             rootNav.GoToPage(New EmployeePage())
+            SetActiveNav(employeesBtn)
         End Sub
 
         AddHandler buyerBtn.ButtonControl.Click,
         Sub(sender, e)
             rootNav.GoToPage(New BuyerPage())
+            SetActiveNav(buyerBtn)
         End Sub
 
         AddHandler courierBtn.ButtonControl.Click,
         Sub(sender, e)
             rootNav.GoToPage(New CourierPage())
+            SetActiveNav(courierBtn)
 
         End Sub
 
         AddHandler sellersBtn.ButtonControl.Click,
         Sub(sender, e)
             rootNav.GoToPage(New SellerPage())
+            SetActiveNav(sellersBtn)
         End Sub
 
 
         AddHandler pricingBtn.ButtonControl.Click,
         Sub(sender, e)
             rootNav.GoToPage(New PricingPage())
+            SetActiveNav(pricingBtn)
         End Sub
 
         AddHandler storageBtn.ButtonControl.Click,
         Sub(sender, e)
             rootNav.GoToPage(New StoragePage())
+            SetActiveNav(storageBtn)
+        End Sub
+
+
+
+        AddHandler exitBtn.ButtonControl.Click,
+        Sub(sender, e)
+            Form1.Instance.Close()
         End Sub
 
         With Sidebar.Controls
@@ -141,6 +161,7 @@
         End With
 
         SidebarContainer.Controls.Add(Sidebar)
+        SidebarContainer.Controls.Add(exitBtn)
 
         ' Sidebar Right Border
 
@@ -172,6 +193,13 @@
         RouteLabel.Text = text.ToUpper()
     End Sub
 
+    Private Sub SetActiveNav(btn As NavBtn)
+        If _activeNavBtn IsNot Nothing Then
+            _activeNavBtn.IsActive = False
+        End If
+        _activeNavBtn = btn
+        btn.IsActive = True
+    End Sub
 End Class
 
 Public Class NavBtn
@@ -179,13 +207,34 @@ Public Class NavBtn
 
     Public ReadOnly Property ButtonControl As Button
     Public ReadOnly Property BorderControl As Panel
+    Private ReadOnly ActiveBorder As Panel
+
+    Private _isActive As Boolean = False
+
+    Public Property IsActive As Boolean
+        Get
+            Return _isActive
+        End Get
+        Set(value As Boolean)
+            _isActive = value
+            ActiveBorder.Visible = value
+            ButtonControl.BackColor = If(value, Color.FromArgb(30, 30, 30), Color.Black)
+        End Set
+    End Property
 
     Public Sub New(text As String, width As Integer)
-
         Me.Width = width
         Me.Height = 40
         Me.Margin = Padding.Empty
         Me.Padding = Padding.Empty
+
+        ' Active left border indicator
+        ActiveBorder = New Panel With {
+            .Dock = DockStyle.Left,
+            .Width = 3,
+            .BackColor = Color.White,
+            .Visible = False
+        }
 
         ButtonControl = New Button With {
             .Text = text,
@@ -204,7 +253,7 @@ Public Class NavBtn
         }
 
         Me.Controls.Add(ButtonControl)
+        Me.Controls.Add(ActiveBorder)
         Me.Controls.Add(BorderControl)
-
     End Sub
 End Class

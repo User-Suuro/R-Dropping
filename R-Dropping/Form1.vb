@@ -1,6 +1,4 @@
-﻿
-
-Public Class Form1
+﻿Public Class Form1
     Public nav As NavigationManager
 
     Public Shared Instance As Form1
@@ -180,9 +178,7 @@ Public Class Form1
                                       configVal.DB_PWD,
                                       configVal.DB_NAME)
 
-
             ConfigManager.Save(configVal)
-
 
             Dim completed As Boolean = Await DialogTypes.ShowLoadingUntilAsync(
                 loadingDlg,
@@ -231,7 +227,7 @@ Public Class Form1
 End Class
 
 
-' ===== DIALOG COMPONENT  =====
+'  DIALOG COMPONENT 
 
 Public Class BaseDialog
     Inherits Form
@@ -249,7 +245,7 @@ Public Class BaseDialog
         InitializeDialogUI()
     End Sub
 
-    ' ==== CONTENT ======
+    ' CONTENT 
 
     Private lblTitle As BaseLabel
     Private lblDescription As BaseLabel
@@ -390,14 +386,6 @@ Public Class BaseDialog
         btnCancel.Text = text
     End Sub
 
-    Public Sub SetCtrl(form As Form, setTo As Boolean)
-        For Each ctrl As Control In form.Controls
-            ctrl.Enabled = setTo
-        Next
-
-    End Sub
-
-
     Private Sub UpdateButtonLayout()
         buttonTable.ColumnStyles.Clear()
         buttonTable.Controls.Clear()
@@ -432,7 +420,6 @@ Public Class BaseDialog
         Me.Show(owner)
 
 
-        SetCtrl(ownerForm, False)
 
         CenterToOwner()
         Me.BringToFront()
@@ -474,7 +461,7 @@ Public Class BaseDialog
 
     Protected Overrides Sub OnFormClosed(e As FormClosedEventArgs)
         MyBase.OnFormClosed(e)
-        SetCtrl(ownerForm, True)
+
     End Sub
 End Class
 

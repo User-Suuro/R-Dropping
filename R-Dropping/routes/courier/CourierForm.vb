@@ -51,7 +51,7 @@ Public Class CourierForm
         }
 
         _firstNameField = New ValidationPanel(_firstNameInput)
-        _firstNameField.SetValidator(New InputValidator().Required())
+        _firstNameField.SetValidator(New InputValidator().Required().NoSpecialChar())
 
 
         ' Last Name
@@ -60,7 +60,7 @@ Public Class CourierForm
         }
 
         _lastNameField = New ValidationPanel(_lastNameInput)
-        _lastNameField.SetValidator(New InputValidator().Required())
+        _lastNameField.SetValidator(New InputValidator().Required().NoSpecialChar())
 
         ' Vehicle Type
         _vehicleTypeInput = New BaseComboBox("Vehicle Type") With {
@@ -85,7 +85,7 @@ Public Class CourierForm
             .LabelText = "Plate Number"
         }
         _plateNoField = New ValidationPanel(_plateNoInput)
-        _plateNoField.SetValidator(New InputValidator().Required())
+        _plateNoField.SetValidator(New InputValidator().Required().NoSpecialChar())
 
 
         ' Button Table

@@ -48,7 +48,7 @@ Public Class SellerForm
         }
 
         _sellerNameField = New ValidationPanel(_sellerNameInput)
-        _sellerNameField.SetValidator(New InputValidator().Required())
+        _sellerNameField.SetValidator(New InputValidator().Required().NoSpecialChar())
 
         ' Email
 
@@ -57,7 +57,7 @@ Public Class SellerForm
         }
 
         _sellerEmailField = New ValidationPanel(_sellerEmailInput)
-        _sellerEmailField.SetValidator(New InputValidator().IsEmail())
+        _sellerEmailField.SetValidator(New InputValidator().IsEmail().NoSpecialChar())
 
         ' Contact No
 
@@ -66,7 +66,7 @@ Public Class SellerForm
         }
 
         _contactNoField = New ValidationPanel(_contactNoInput)
-        _contactNoField.SetValidator(New InputValidator().IsPhone())
+        _contactNoField.SetValidator(New InputValidator().IsPhone().NoSpecialChar())
 
         ' Platform
         _platformInput = New BaseComboBox("Platform") With {
@@ -78,7 +78,7 @@ Public Class SellerForm
         }
 
         _platformField = New ValidationPanel(_platformInput)
-        _platformField.SetValidator(New InputValidator().Required())
+        _platformField.SetValidator(New InputValidator().Required().NoSpecialChar())
 
         ' Button Table
         _buttonTable = New TableLayoutPanel With {

@@ -246,6 +246,20 @@ Public Class InputValidator
         Return Me
     End Function
 
+    Public Function NoSpecialChar(Optional message As String = "Contains invalid characters") As InputValidator
+        _rules.Add(Function(v)
+                       If String.IsNullOrWhiteSpace(v) Then Return ValidationResult.Ok
+
+                       Dim forbiddenPattern As String = "[\'\"";]"
+
+                       Return If(Regex.IsMatch(v, forbiddenPattern),
+                             New ValidationResult(False, message),
+                             ValidationResult.Ok)
+                   End Function)
+
+        Return Me
+    End Function
+
 
     Public Function Custom(rule As Func(Of String, ValidationResult)) As InputValidator
         _rules.Add(rule)

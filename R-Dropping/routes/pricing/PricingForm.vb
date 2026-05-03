@@ -53,11 +53,11 @@ Public Class PricingForm
         ' Description
 
         _descInput = New BaseInputPanel With {
-            .LabelText = "Short Description"
+            .LabelText = "Short Description (optional)"
         }
 
         _descField = New ValidationPanel(_descInput)
-        _descField.SetValidator(New InputValidator().MaxLength(40))
+        _descField.SetValidator(New InputValidator().MaxLength(40).NoSpecialChar())
 
 
         ' Base Fee
@@ -69,7 +69,7 @@ Public Class PricingForm
         _baseFeeInput.SetPricingMode()
 
         _baseFeeField = New ValidationPanel(_baseFeeInput)
-        _baseFeeField.SetValidator(New InputValidator().Required().MinValue(2).MaxValue(10000))
+        _baseFeeField.SetValidator(New InputValidator().Required().MinValue(0).MaxValue(10000))
 
         ' Daily Fee
 

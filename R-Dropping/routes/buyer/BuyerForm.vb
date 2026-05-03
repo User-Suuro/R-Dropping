@@ -15,6 +15,7 @@ Public Class BuyerForm
     Private _contactNoField As ValidationPanel
 
     Private _addressInput As BaseInputPanel
+    Private _addressField As ValidationPanel
 
     Private _addButton As BaseButton
     Private _cancelButton As BaseButton
@@ -46,7 +47,7 @@ Public Class BuyerForm
         }
 
         _firstNameField = New ValidationPanel(_firstNameInput)
-        _firstNameField.SetValidator(New InputValidator().Required())
+        _firstNameField.SetValidator(New InputValidator().Required().NoSpecialChar())
 
 
         ' Last Name
@@ -55,7 +56,7 @@ Public Class BuyerForm
         }
 
         _lastNameField = New ValidationPanel(_lastNameInput)
-        _lastNameField.SetValidator(New InputValidator().Required())
+        _lastNameField.SetValidator(New InputValidator().Required().NoSpecialChar())
 
         ' Contact No
         _contactNoInput = New BaseInputPanel() With {
@@ -63,13 +64,15 @@ Public Class BuyerForm
         }
 
         _contactNoField = New ValidationPanel(_contactNoInput)
-        _contactNoField.SetValidator(New InputValidator().IsPhone())
+        _contactNoField.SetValidator(New InputValidator().IsPhone().NoSpecialChar())
 
         ' Address
         _addressInput = New BaseInputPanel() With {
             .LabelText = "Address (optional)"
         }
 
+        _addressField = New ValidationPanel(_addressInput)
+        _addressField.SetValidator(New InputValidator().NoSpecialChar())
 
 
         ' Button Table
@@ -113,7 +116,7 @@ Public Class BuyerForm
             .Add(_firstNameField)
             .Add(_lastNameField)
             .Add(_contactNoField)
-            .Add(_addressInput)
+            .Add(_addressField)
             .Add(_buttonTable)
         End With
 
@@ -197,7 +200,7 @@ Public Class BuyerForm
     End Sub
 
     Private Function ValidateAllInputs() As Boolean
-        Return {_firstNameField, _lastNameField, _contactNoField}.All(Function(f) f.ValidateInput())
+        Return {_firstNameField, _lastNameField, _addressField, _contactNoField}.All(Function(f) f.ValidateInput())
     End Function
 
     Private Async Function AddQuery() As Task(Of Boolean)

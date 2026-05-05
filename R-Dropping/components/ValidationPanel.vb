@@ -24,6 +24,8 @@ Public Class ValidationPanel
     Private _lblError As BaseLabel
     Private _content As Control
     Private _isValid As Boolean = True
+    Private _hasInteracted As Boolean = False
+
 
     Private Const ErrorHeight As Integer = 14
     Private Const ErrorTopGap As Integer = 0
@@ -64,13 +66,13 @@ Public Class ValidationPanel
             Dim provider = DirectCast(content, IValueProvider)
             getValue = Function() provider.Value
             AddHandler provider.ValueChanged,
-                Sub(s As Object, e As EventArgs)
-                    If _host IsNot Nothing Then _host.ValidateInput()
-                End Sub
+            Sub(s As Object, e As EventArgs)
+                _hasInteracted = True
+                If _host IsNot Nothing Then _host.ValidateInput()
+            End Sub
         Else
             getValue = Function() String.Empty
         End If
-
         _host = New ValidationHost(getValue, AddressOf ShowError, AddressOf ClearError)
 
         ' Layout events 
@@ -123,6 +125,9 @@ Public Class ValidationPanel
     Public Function ValidateInput() As Boolean Implements IValidatableInput.ValidateInput
         Return _host.ValidateInput()
     End Function
+
+
+
 
 End Class
 
@@ -225,6 +230,28 @@ Public Class InputValidator
         Return Me
     End Function
 
+    Public Function MaxValue(max As Decimal,
+                        Optional message As String = Nothing) As InputValidator
+
+        _rules.Add(Function(v)
+                       If String.IsNullOrWhiteSpace(v) Then Return ValidationResult.Ok
+
+                       Dim num As Decimal
+                       If Not Decimal.TryParse(v, num) Then
+                           Return New ValidationResult(False, "Invalid number")
+                       End If
+
+                       If num > max Then
+                           Return New ValidationResult(False,
+                           If(message, $"Must not exceed {max}"))
+                       End If
+
+                       Return ValidationResult.Ok
+                   End Function)
+
+        Return Me
+    End Function
+
     Public Function IsPhone() As InputValidator
         _rules.Add(Function(v)
                        If String.IsNullOrWhiteSpace(v) Then Return ValidationResult.Ok
@@ -266,7 +293,7 @@ Public Class InputValidator
         Return Me
     End Function
 
-    '  Run
+
 
     Public Function Validate(value As String) As ValidationResult
         For Each rule In _rules

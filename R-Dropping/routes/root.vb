@@ -219,6 +219,7 @@ Public Class NavBtn
             _isActive = value
             ActiveBorder.Visible = value
             ButtonControl.BackColor = If(value, Color.FromArgb(30, 30, 30), Color.Black)
+            ButtonControl.ForeColor = Color.White
         End Set
     End Property
 
@@ -251,6 +252,11 @@ Public Class NavBtn
             .Height = 1,
             .BackColor = Color.LightGray
         }
+
+        AddHandler ButtonControl.EnabledChanged,
+        Sub()
+            ButtonControl.ForeColor = Color.White
+        End Sub
 
         Me.Controls.Add(ButtonControl)
         Me.Controls.Add(ActiveBorder)

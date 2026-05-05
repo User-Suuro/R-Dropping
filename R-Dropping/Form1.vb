@@ -417,18 +417,15 @@ Public Class BaseDialog
         ownerForm = owner
 
         Me.StartPosition = FormStartPosition.Manual
-        Me.Show(owner)
-
-
-
         CenterToOwner()
+
+        Me.Show(owner)
+        owner.Enabled = False
         Me.BringToFront()
 
         AddHandler owner.Resize, AddressOf SyncDialogPosition
         AddHandler owner.LocationChanged, AddressOf SyncDialogPosition
-
     End Sub
-
     Public Function ShowBaseDialogAsync(owner As Form) As Task(Of DialogResultType)
 
         Dim tcs As New TaskCompletionSource(Of DialogResultType)
@@ -462,6 +459,12 @@ Public Class BaseDialog
     Protected Overrides Sub OnFormClosed(e As FormClosedEventArgs)
         MyBase.OnFormClosed(e)
 
+        If ownerForm IsNot Nothing AndAlso Not ownerForm.IsDisposed Then
+            ownerForm.Enabled = True
+
+            RemoveHandler ownerForm.Resize, AddressOf SyncDialogPosition
+            RemoveHandler ownerForm.LocationChanged, AddressOf SyncDialogPosition
+        End If
     End Sub
 End Class
 

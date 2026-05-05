@@ -92,9 +92,7 @@ Module Db
                 cmd.Parameters.AddWithValue(param.Key, param.Value)
             Next
 
-            cmdRead = CType(Await cmd.ExecuteReaderAsync(), MySqlDataReader)
-
-            Return cmdRead
+            Return Await cmd.ExecuteReaderAsync(CommandBehavior.CloseConnection)
 
         Catch ex As Exception
             MsgBox(ex.Message, MsgBoxStyle.Critical)

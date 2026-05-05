@@ -34,7 +34,7 @@ Public Class BaseInputPanel
             .Dock = DockStyle.Top
             .BorderRadius = 4
             .PlaceholderForeColor = Colors.LblMuted
-            .Height = 32
+            .Height = 28
             .Font = New Font("Segoe UI", 9.0F)
             .ForeColor = Color.Black
         End With
@@ -132,7 +132,7 @@ Public Class BaseNumericPanel
         With _numInput
             .Dock = DockStyle.Top
             .BorderRadius = 4
-            .Height = 32
+            .Height = 28
             .Font = New Font("Segoe UI", 9.0F)
             .ForeColor = Color.Black
             .Minimum = Decimal.MinValue

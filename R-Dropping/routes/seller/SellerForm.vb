@@ -27,8 +27,10 @@ Public Class SellerForm
         Me.Dock = DockStyle.Fill
         _id = id
         InitializeComponent()
+        _subContainer.Visible = False
         AddHandler Me.Resize, AddressOf CenterSubContainer
         AddHandler _subContainer.SizeChanged, AddressOf CenterSubContainer
+        CenterSubContainer(Nothing, EventArgs.Empty)
         LoadAsync()
     End Sub
 
@@ -213,7 +215,7 @@ Public Class SellerForm
 
         Dim params As New Dictionary(Of String, Object) From {
         {$"@{Seller.seller_name}", _sellerNameInput.Value},
-        {$"@{Seller.email}", ToDbNull(_sellerEmailInput.Value.Trim())},
+        {$"@{Seller.email}", _sellerEmailInput.Value.Trim())},
         {$"@{Seller.contact_no}", ToDbNull(_contactNoInput.Value.Trim())},
         {$"@{Seller.platform}", _platformInput.SelectedValue}
         }
@@ -294,5 +296,6 @@ Public Class SellerForm
     Private Sub CenterSubContainer(sender As Object, e As EventArgs)
         _subContainer.Left = (Me.ClientSize.Width - _subContainer.Width) \ 2
         _subContainer.Top = (Me.ClientSize.Height - _subContainer.Height) \ 2
+        _subContainer.Visible = True
     End Sub
 End Class

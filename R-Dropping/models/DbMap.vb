@@ -62,6 +62,7 @@ Public Class Item
     Public Shared ReadOnly table_name As String = "item"
     Public Shared ReadOnly id As String = "item_id"
     Public Shared ReadOnly managed_by As String = "managed_by"
+    Public Shared ReadOnly seller_id As String = "seller_id"  ' Add this
     Public Shared ReadOnly pricing_id As String = "pricing_id"
     Public Shared ReadOnly buyer_id As String = "buyer_id"
     Public Shared ReadOnly name As String = "item_name"
@@ -70,7 +71,6 @@ Public Class Item
     Public Shared ReadOnly drop_off_date As String = "drop_off_date"
     Public Shared ReadOnly pickup_date As String = "pickup_date"
 End Class
-
 Public Class Delivery
     Public Shared ReadOnly table_name As String = "delivery"
     Public Shared ReadOnly item As String = "item_id"
@@ -79,7 +79,8 @@ Public Class Delivery
 End Class
 
 Public Class Stored
-    Public Shared ReadOnly table_name As String = "storage_unit_id"
+    Public Shared ReadOnly table_name As String = "stored_on"
+    Public Shared ReadOnly storage_id As String = "storage_unit_id"
     Public Shared ReadOnly item_id As String = "item_id"
     Public Shared ReadOnly date_stored As String = "date_stored"
 End Class

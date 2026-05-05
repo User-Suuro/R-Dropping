@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 27, 2026 at 03:45 AM
+-- Generation Time: May 05, 2026 at 01:36 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -42,7 +42,8 @@ CREATE TABLE `buyer` (
 
 INSERT INTO `buyer` (`buyer_id`, `first_name`, `last_name`, `contact_no`, `address`, `created_at`) VALUES
 (1, 'test123', 'test', NULL, NULL, '2026-04-25 10:35:41'),
-(3, 'Test123', 'Test123', '09946826707', NULL, '2026-04-25 14:48:36');
+(3, 'Test123', 'Test123', '09946826707', NULL, '2026-04-25 14:48:36'),
+(4, 'test123', 'test', '123123123', NULL, '2026-05-03 23:08:59');
 
 -- --------------------------------------------------------
 
@@ -65,8 +66,8 @@ CREATE TABLE `courier` (
 --
 
 INSERT INTO `courier` (`courier_id`, `first_name`, `last_name`, `vehicle_type`, `vehicle_brand`, `plate_no`, `created_at`) VALUES
-(1, 'John', 'Doe', 'Tricycle', 'Honda', '123123123', '2026-04-25 20:18:28'),
-(3, 'test123', 'test123', 'Motorcyle', 'Honda', '123123', '2026-04-26 02:37:09');
+(3, 'test123', 'test123', 'Motorcyle', 'Honda', '123123', '2026-04-26 02:37:09'),
+(4, 'Test', 'Test123', 'Motorcyle', 'Suzuki', '123123', '2026-05-02 04:15:47');
 
 -- --------------------------------------------------------
 
@@ -101,9 +102,9 @@ CREATE TABLE `employee` (
 --
 
 INSERT INTO `employee` (`employee_id`, `first_name`, `last_name`, `middle_name`, `position`, `created_at`) VALUES
-(4, 'Godwin', 'Galvez', NULL, 'Admin', '2026-04-22 23:33:41'),
-(8, 'test123', 'test', NULL, 'Manager', '2026-04-25 10:18:37'),
-(9, 'Johm Mark', 'Pardo', NULL, 'Manager', '2026-04-25 14:18:27');
+(4, 'Godwin', 'Galvez', 'Test', 'Admin', '2026-04-22 23:33:41'),
+(9, 'Johm Mark', 'Pardo', NULL, 'Manager', '2026-04-25 14:18:27'),
+(11, 'test123', 'test', 'test', 'Admin', '2026-05-03 23:08:18');
 
 -- --------------------------------------------------------
 
@@ -117,12 +118,22 @@ CREATE TABLE `item` (
   `seller_id` int(11) NOT NULL,
   `pricing_id` int(11) NOT NULL,
   `buyer_id` int(11) NOT NULL,
-  `item_name` int(11) NOT NULL,
-  `description` varchar(50) NOT NULL,
-  `image` longblob NOT NULL,
+  `item_name` varchar(25) NOT NULL,
+  `description` varchar(50) DEFAULT NULL,
+  `image_path` varchar(100) NOT NULL,
   `drop_off_date` datetime NOT NULL DEFAULT current_timestamp(),
   `pickup_date` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `item`
+--
+
+INSERT INTO `item` (`item_id`, `managed_by`, `seller_id`, `pricing_id`, `buyer_id`, `item_name`, `description`, `image_path`, `drop_off_date`, `pickup_date`) VALUES
+(4, 4, 4, 1, 1, '0', '', 'images\\items\\item_20260505_192736_1638.png', '2026-05-05 19:27:39', NULL),
+(5, 4, 4, 1, 1, '0', '', 'images\\items\\item_20260505_192736_1638.png', '2026-05-05 19:28:02', NULL),
+(6, 4, 4, 1, 1, '0', '', 'images\\items\\item_20260505_193043_2084.png', '2026-05-05 19:30:45', NULL),
+(7, 9, 4, 1, 3, '0', NULL, 'images\\items\\item_20260505_193443_2167.png', '2026-05-05 19:35:10', NULL);
 
 -- --------------------------------------------------------
 
@@ -143,8 +154,7 @@ CREATE TABLE `pricing` (
 --
 
 INSERT INTO `pricing` (`pricing_id`, `rate_label`, `description`, `base_fee`, `daily_increment_fee`) VALUES
-(1, 'Bags', 'For small items like bags', 12.5, 6),
-(3, 'Test', 'Test', 8, 2);
+(1, 'Bags', 'For small items like bags', 12.5, 6);
 
 -- --------------------------------------------------------
 
@@ -166,7 +176,8 @@ CREATE TABLE `seller` (
 --
 
 INSERT INTO `seller` (`seller_id`, `seller_name`, `email`, `contact_no`, `platform`, `created_at`) VALUES
-(3, 'test@email.com', 'test@email.com', '09123123123', 'Facebook', '2026-04-26 23:37:40');
+(4, '123', '123@email.com', NULL, 'TikTok', '2026-05-03 23:09:28'),
+(5, 'Seller test', 'Seller@email.com', NULL, 'Facebook', '2026-05-04 18:46:14');
 
 -- --------------------------------------------------------
 
@@ -187,8 +198,7 @@ CREATE TABLE `storage_unit` (
 
 INSERT INTO `storage_unit` (`storage_unit_id`, `storage_name`, `storage_type`, `capacity_limit`) VALUES
 (1, 'Bags and Clothes', 'Cabinet', 15),
-(2, 'test', 'Cabinet', 5),
-(3, 'Test123', 'Basket', 2),
+(2, 'test', 'Basket', 5),
 (4, 'Test12345', 'Basket', 2);
 
 -- --------------------------------------------------------
@@ -202,6 +212,14 @@ CREATE TABLE `stored_on` (
   `item_id` int(11) NOT NULL,
   `date_stored` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `stored_on`
+--
+
+INSERT INTO `stored_on` (`storage_unit_id`, `item_id`, `date_stored`) VALUES
+(1, 6, '2026-05-05 19:30:45'),
+(1, 7, '2026-05-05 19:35:10');
 
 --
 -- Indexes for dumped tables
@@ -275,25 +293,25 @@ ALTER TABLE `stored_on`
 -- AUTO_INCREMENT for table `buyer`
 --
 ALTER TABLE `buyer`
-  MODIFY `buyer_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `buyer_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `courier`
 --
 ALTER TABLE `courier`
-  MODIFY `courier_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `courier_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `employee`
 --
 ALTER TABLE `employee`
-  MODIFY `employee_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `employee_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `item`
 --
 ALTER TABLE `item`
-  MODIFY `item_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `item_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `pricing`
@@ -305,7 +323,7 @@ ALTER TABLE `pricing`
 -- AUTO_INCREMENT for table `seller`
 --
 ALTER TABLE `seller`
-  MODIFY `seller_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `seller_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `storage_unit`

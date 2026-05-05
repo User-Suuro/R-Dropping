@@ -19,9 +19,7 @@ Public Class ComboItem
 End Class
 
 
-' ============================================================
-'  BASE COMBO BOX
-' ============================================================
+
 Public Class BaseComboBox
     Inherits UserControl
     Implements IValueProvider
@@ -34,9 +32,6 @@ Public Class BaseComboBox
     Public Property Placeholder As String = "Select an option..."
     Public Property SearchEnabled As Boolean = True
 
-    ''' <summary>
-    ''' Override the dropdown panel width. 0 (default) = match the control's own width.
-    ''' </summary>
     Public Property DropdownWidth As Integer = 0
 
     Private _selectedId As String = ""
@@ -93,7 +88,7 @@ Public Class BaseComboBox
 
         With _btn
             .Dock = DockStyle.Top
-            .Height = 36
+            .Height = 32
             .FillColor = Color.White
             .ForeColor = Color.FromArgb(150, 150, 150)
             .BorderColor = Color.FromArgb(220, 220, 220)
@@ -540,7 +535,7 @@ Public Class InputComboBox
 
         With _txt
             .Dock = DockStyle.Top
-            .Height = 36
+            .Height = 32
             .FillColor = Color.White
             .ForeColor = Color.FromArgb(20, 20, 20)
             .BorderColor = Color.FromArgb(220, 220, 220)

@@ -387,7 +387,7 @@
                                           "Item has been claimed successfully.")
 
                         If Await infoDlg.ShowBaseDialogAsync(Form1.Instance) = DialogResultType.Confirm Then
-                            root.rootNav.GoBackPage()
+                            root.rootNav.GoToPage(New DropOffRoot())
                         End If
                     Else
                         Dim errorDlg As New BaseDialog()
@@ -453,7 +453,7 @@
     ' ── Helpers ───────────────────────────────────────────────────────────────
 
     Private Sub CancelAdd()
-        root.rootNav.GoBackPage()
+        root.rootNav.GoToPage(New DropOffRoot())
     End Sub
 
     Private Sub CenterTableFormat(sender As Object, e As EventArgs)

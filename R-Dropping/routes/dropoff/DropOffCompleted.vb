@@ -8,8 +8,7 @@ Public Class DropOffCompleted
     Private _initialized As Boolean = False
     Private _isFetching As Boolean = False
 
-    Public Sub New(nav As NavigationManager)
-
+    Public Sub New()
         Me.Dock = DockStyle.Fill
         InitializeComponent()
         SetupEventHandlers()
@@ -35,7 +34,6 @@ Public Class DropOffCompleted
 
     Private _refreshBtn As BaseButton
     Private _pendingBtn As BaseButton
-    Private _deliverItem As BaseButton
 
 
     Private Sub InitializeActionBtn()
@@ -112,21 +110,21 @@ Public Class DropOffCompleted
                 $"SELECT 
                     i.{Item.id},
                     i.{Item.name},
-                    i.{Item.desc},
-                    i.{Item.drop_off_date},
-                    i.{Item.pickup_date},
+                    DATE_FORMAT(i.{Item.drop_off_date}, '%m-%d-%Y %h:%i %p') AS {Item.drop_off_date},
+                    DATE_FORMAT(i.{Item.pickup_date}, '%m-%d-%Y %h:%i %p') AS {Item.pickup_date},
+                    DATE_FORMAT(d.{Delivery.date_delivered}, '%m-%d-%Y %h:%i %p') AS {Delivery.date_delivered},
                     CONCAT(b.{Buyer.first_name}, ' ', b.{Buyer.last_name}) AS buyer_name,
                     CONCAT(e.{Employee.first_name}, ' ', e.{Employee.last_name}) AS managed_by,
                     s.{Seller.seller_name} AS seller_name,
-                    p.{Pricing.rate_label} AS pricing,
-                    st.{Storage.storage_name} AS storage
+                    p.{Pricing.base_fee},
+                    p.{Pricing.daily_increment_fee},
+                    (p.{Pricing.base_fee} + (DATEDIFF(i.{Item.pickup_date}, i.{Item.drop_off_date}) * p.{Pricing.daily_increment_fee})) AS total_amount
                 FROM {Item.table_name} i
                 LEFT JOIN {Buyer.table_name} b ON b.{Buyer.id} = i.{Item.buyer_id}
                 LEFT JOIN {Employee.table_name} e ON e.{Employee.id} = i.{Item.managed_by}
                 LEFT JOIN {Seller.table_name} s ON s.{Seller.id} = i.{Item.seller_id}
                 LEFT JOIN {Pricing.table_name} p ON p.{Pricing.id} = i.{Item.pricing_id}
                 LEFT JOIN {Stored.table_name} st_map ON st_map.{Stored.item_id} = i.{Item.id}
-                LEFT JOIN {Storage.table_name} st ON st.{Storage.id} = st_map.{Stored.storage_id}
                 LEFT JOIN {Delivery.table_name} d ON d.{Delivery.item_id} = i.{Item.id}
                 WHERE i.{Item.pickup_date} IS NOT NULL
                   AND (d.{Delivery.item_id} IS NULL OR d.{Delivery.date_delivered} IS NOT NULL)"
@@ -149,47 +147,48 @@ Public Class DropOffCompleted
 
     End Sub
 
-        Private Sub HandleCol()
-            Dim hiddenCols = {Item.id}
+    Private Sub HandleCol()
+        Dim hiddenCols = {Item.id}
+        For Each col In hiddenCols
+            If _dgv.DataGridView.Columns.Contains(col) Then
+                _dgv.DataGridView.Columns(col).Visible = False
+            End If
+        Next
 
-            For Each col In hiddenCols
-                If _dgv.DataGridView.Columns.Contains(col) Then
-                    _dgv.DataGridView.Columns(col).Visible = False
-                End If
-            Next
-
-            Dim columnOrder As New Dictionary(Of String, Integer) From {
+        Dim columnOrder As New Dictionary(Of String, Integer) From {
         {Item.drop_off_date, 0},
-        {Item.name, 1},
-        {"buyer_name", 2},
-        {"seller_name", 3},
-        {"pricing", 4},
-        {"storage", 5},
-        {Item.desc, 6}
+        {Item.pickup_date, 1},
+        {Delivery.date_delivered, 2},
+        {Item.name, 3},
+        {"buyer_name", 4},
+        {"seller_name", 5},
+        {Pricing.base_fee, 6},
+        {Pricing.daily_increment_fee, 7},
+        {"total_amount", 8}
     }
+        For Each kvp In columnOrder
+            If _dgv.DataGridView.Columns.Contains(kvp.Key) Then
+                _dgv.DataGridView.Columns(kvp.Key).DisplayIndex = kvp.Value
+            End If
+        Next
 
-            For Each kvp In columnOrder
-                If _dgv.DataGridView.Columns.Contains(kvp.Key) Then
-                    _dgv.DataGridView.Columns(kvp.Key).DisplayIndex = kvp.Value
-                End If
-            Next
-
-            Dim headerNames As New Dictionary(Of String, String) From {
+        Dim headerNames As New Dictionary(Of String, String) From {
         {Item.drop_off_date, "Drop-off Date"},
-            {Item.name, "Item Name"},
-            {"buyer_name", "Buyer"},
-            {"seller_name", "Seller"},
-            {"pricing", "Pricing"},
-            {"storage", "Storage"},
-            {Item.desc, "Description"}
-        }
-
-            For Each kvp In headerNames
-                If _dgv.DataGridView.Columns.Contains(kvp.Key) Then
-                    _dgv.DataGridView.Columns(kvp.Key).HeaderText = kvp.Value
-                End If
-            Next
-        End Sub
+        {Item.pickup_date, "Pickup Date"},
+        {Delivery.date_delivered, "Delivered Date"},
+        {Item.name, "Item Name"},
+        {"buyer_name", "Buyer"},
+        {"seller_name", "Seller"},
+        {Pricing.base_fee, "Base Fee"},
+        {Pricing.daily_increment_fee, "Daily Fee"},
+        {"total_amount", "Total Amount"}
+    }
+        For Each kvp In headerNames
+            If _dgv.DataGridView.Columns.Contains(kvp.Key) Then
+                _dgv.DataGridView.Columns(kvp.Key).HeaderText = kvp.Value
+            End If
+        Next
+    End Sub
 
 
 

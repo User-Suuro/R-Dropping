@@ -79,7 +79,7 @@ Public Class DropOffPage
         _dgv.AddActionButton(_addBtn, ButtonVisibility.Always)
         _dgv.AddActionButton(_refreshBtn, ButtonVisibility.Always)
 
-        _dgv.AddActionButton(_editBtn, ButtonVisibility.OnSelection)
+        '_dgv.AddActionButton(_editBtn, ButtonVisibility.OnSelection)
         _dgv.AddActionButton(_claimItem, ButtonVisibility.OnSelection)
     End Sub
 

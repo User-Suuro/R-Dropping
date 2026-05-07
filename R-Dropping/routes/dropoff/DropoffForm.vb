@@ -1,4 +1,6 @@
-﻿Imports MySql.Data.MySqlClient
+﻿Imports System.IO
+Imports ClosedXML.Excel
+Imports MySql.Data.MySqlClient
 
 Public Class DropOffForm
     Inherits BasePanel
@@ -597,7 +599,7 @@ Public Class DropOffForm
                         Dim result_info_dlg = Await info_dlg.ShowBaseDialogAsync(Form1.Instance)
 
                         If result_info_dlg = DialogResultType.Confirm Then
-                            root.rootNav.GoBackPage()
+                            root.rootNav.GoToPage(New DropOffRoot())
                         End If
                     Else
                         Dim error_dlg = New BaseDialog()
@@ -658,7 +660,23 @@ Public Class DropOffForm
                 {"@storage_id", _storedCmb.SelectedValue}
             }
 
+
+
             Dim storedRows As Integer = Await ExecuteQueryAsync(storedSql, storedParams)
+
+            If storedRows > 0 Then
+
+                GenerateSellerReceipt(
+                    _sellerCmb.GetDisplayText(),
+                    _itemNameInp.Value,
+                    _dailyPricingPlaholder.Value,
+                    _basePricingPlacholder.Value,
+                    _managedCmb.GetDisplayText(),
+                    DateTime.Now
+                )
+
+            End If
+
             Return storedRows > 0
 
         Catch ex As Exception
@@ -787,7 +805,7 @@ Public Class DropOffForm
 
 
     Private Sub canceladd()
-        root.rootNav.GoBackPage()
+        root.rootNav.GoToPage(New DropOffRoot())
     End Sub
 
     Private Sub centerTableFormat(sender As Object, e As EventArgs)
@@ -796,5 +814,82 @@ Public Class DropOffForm
         _tableFormat.Visible = True
     End Sub
 
+
+    Private Sub GenerateSellerReceipt(
+    sellerName As String,
+    itemName As String,
+    incrementFee As String,
+    baseFee As String,
+    processedBy As String,
+    dropOffDate As DateTime
+)
+
+        Try
+
+            Dim relativePath As String =
+            Config.BuildRelativePath(
+                "receipts",
+                "dropoff",
+                "dropoff_receipt",
+                ".xlsx"
+            )
+
+            Dim fullPath As String =
+            Path.Combine(
+                Config.FindSolutionRoot(),
+                relativePath
+            )
+
+            Using workbook As New XLWorkbook()
+
+                Dim ws = workbook.Worksheets.Add("Seller Receipt")
+
+                Dim labels As String() = {
+                "Seller Name",
+                "Item Name",
+                "Increment Fee",
+                "Base Fee",
+                "Processed By",
+                "Drop Off Date"
+            }
+
+                Dim values As String() = {
+                sellerName,
+                itemName,
+                incrementFee,
+                baseFee,
+                processedBy,
+                dropOffDate.ToString("MMMM dd, yyyy hh:mm tt")
+            }
+
+                For i As Integer = 0 To labels.Length - 1
+
+                    ws.Cell(i + 1, 1).Value = labels(i)
+                    ws.Cell(i + 1, 2).Value = values(i)
+
+                Next
+
+                ws.Columns().AdjustToContents()
+
+                workbook.SaveAs(fullPath)
+
+            End Using
+
+            Process.Start(New ProcessStartInfo(fullPath) With {
+            .UseShellExecute = True
+        })
+
+        Catch ex As Exception
+
+            MessageBox.Show(
+            ex.Message,
+            "Receipt Error",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Error
+        )
+
+        End Try
+
+    End Sub
 
 End Class

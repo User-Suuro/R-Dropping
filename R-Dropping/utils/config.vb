@@ -1,6 +1,6 @@
 ﻿Imports System.IO
 
-Public Class ConfigManager
+Public Class Config
 
     Private Shared ReadOnly FilePath As String =
         Path.Combine(GetSolutionPath(), "config.txt")
@@ -144,4 +144,63 @@ Public Class ConfigManager
     End Sub
 
 
+    Public Shared Function FindSolutionRoot(
+    Optional folder As String = Nothing,
+    Optional subFolder As String = Nothing
+) As String
+
+        Dim current As New DirectoryInfo(Application.StartupPath)
+
+        Do While current IsNot Nothing
+
+            If current.GetFiles("*.sln").Length > 0 Then
+
+                Dim rootPath As String = current.FullName
+
+                If Not String.IsNullOrWhiteSpace(folder) Then
+                    rootPath = Path.Combine(rootPath, folder)
+                End If
+
+                If Not String.IsNullOrWhiteSpace(subFolder) Then
+                    rootPath = Path.Combine(rootPath, subFolder)
+                End If
+
+                Directory.CreateDirectory(rootPath)
+
+                Return rootPath
+
+            End If
+
+            current = current.Parent
+
+        Loop
+
+        Return Nothing
+
+    End Function
+
+    Public Shared Function BuildRelativePath(
+    folder As String,
+    subFolder As String,
+    prefix As String,
+    extension As String
+) As String
+
+        Dim timestamp As String =
+        DateTime.Now.ToString("yyyyMMdd_HHmmss_ffff")
+
+        If Not extension.StartsWith(".") Then
+            extension = "." & extension
+        End If
+
+        Dim fileName As String =
+        $"{prefix}_{timestamp}{extension}"
+
+        Return Path.Combine(
+        folder,
+        subFolder,
+        fileName
+    )
+
+    End Function
 End Class

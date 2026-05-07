@@ -47,7 +47,8 @@ Public Class DropOffRoot
         _completedBtn = New BaseButton With {
             .Text = "Settled",
             .Height = 38,
-            .Margin = Padding.Empty
+            .Margin = Padding.Empty,
+            .BorderRadius = 0
         }
 
         _completedBtn.SetPrimary()
@@ -55,7 +56,8 @@ Public Class DropOffRoot
         _pendingBtn = New BaseButton With {
             .Text = "Pending",
             .Height = 38,
-            .Margin = Padding.Empty
+            .Margin = Padding.Empty,
+            .BorderRadius = 0
         }
 
         _pendingBtn.SetPrimary()
@@ -63,7 +65,8 @@ Public Class DropOffRoot
         _onDeliveryBtn = New BaseButton With {
             .Text = "On Delivery",
             .Height = 38,
-            .Margin = Padding.Empty
+            .Margin = Padding.Empty,
+            .BorderRadius = 0
         }
 
         _onDeliveryBtn.SetPrimary()
@@ -97,12 +100,15 @@ Public Class DropOffRoot
         _dropOffRootNav.GoToPage(New DropOffPage())
 
         AddHandler _completedBtn.Click, Sub(sender, e)
-                                            _dropOffRootNav.GoToPage(New DropOffCompleted(_dropOffRootNav))
+                                            _dropOffRootNav.GoToPage(New DropOffCompleted())
                                         End Sub
         AddHandler _pendingBtn.Click, Sub(sender, e)
                                           _dropOffRootNav.GoToPage(New DropOffPage())
                                       End Sub
 
+        AddHandler _onDeliveryBtn.Click, Sub(sender, e)
+                                             _dropOffRootNav.GoToPage(New DropOffOnDelivery())
+                                         End Sub
 
     End Sub
 

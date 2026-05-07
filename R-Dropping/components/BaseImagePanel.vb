@@ -102,7 +102,6 @@ Public Class BaseImagePanel
             End Sub
     End Sub
 
-    ' ── File Picking ─────────────────────────────────────────────────────────
 
     Private Sub DropZone_Click(sender As Object, e As EventArgs)
         Using dlg As New OpenFileDialog()
@@ -115,14 +114,10 @@ Public Class BaseImagePanel
         End Using
     End Sub
 
-    ''' <summary>
-    ''' Loads an image from an absolute source path, computes the future
-    ''' destination path immediately, and exposes it via Value.
-    ''' </summary>
     Private Sub TryLoadImage(filePath As String)
         Dim ext As String = Path.GetExtension(filePath).ToLowerInvariant()
 
-        ' ── FIX: use Array.IndexOf instead of .Contains() ────────────────
+
         If Array.IndexOf(AllowedExtensions, ext) = -1 Then
             OnValidationError()
             MessageBox.Show(
@@ -163,34 +158,25 @@ Public Class BaseImagePanel
         End Try
     End Sub
 
-    ' ── Path Helpers ─────────────────────────────────────────────────────────
-
-    ''' <summary>
-    ''' Builds the relative path the image will be saved to:
-    ''' images\items\item_yyyyMMdd_HHmmss_ffff.ext
-    ''' </summary>
     Private Shared Function BuildRelativePath(ext As String) As String
         Dim timestamp As String = DateTime.Now.ToString("yyyyMMdd_HHmmss_ffff")
         Dim fileName As String = $"item_{timestamp}{ext}"
         Return Path.Combine(ImageFolder, ImageSubFolder, fileName)
     End Function
 
-    ''' <summary>
-    ''' Resolves any stored relative/absolute path to a full absolute path.
-    ''' </summary>
+
     Private Function ResolveFullPath(pathOrName As String) As String
         If Path.IsPathRooted(pathOrName) Then Return pathOrName
 
         Dim slnRoot As String = FindSolutionRoot()
         If slnRoot Is Nothing Then Return Nothing
 
-        ' Already starts with "images\..." — just combine with root.
+
         If pathOrName.StartsWith(ImageFolder & Path.DirectorySeparatorChar,
                                  StringComparison.OrdinalIgnoreCase) Then
             Return Path.Combine(slnRoot, pathOrName)
         End If
 
-        ' Bare filename — assume it lives in the items subfolder.
         Return Path.Combine(slnRoot, ImageFolder, ImageSubFolder, pathOrName)
     End Function
 
@@ -203,12 +189,6 @@ Public Class BaseImagePanel
         Return Nothing
     End Function
 
-    ' ── Save ─────────────────────────────────────────────────────────────────
-
-    ''' <summary>
-    ''' Saves the image to the path that was already computed when the user
-    ''' picked it (Value). Returns the relative path on success, Nothing on failure.
-    ''' </summary>
     Public Function SaveImage() As String
         If _pictureBox.Image Is Nothing OrElse String.IsNullOrEmpty(_relativePath) Then
             Return Nothing
@@ -277,12 +257,7 @@ Public Class BaseImagePanel
         _btnRemove.Location = New Point(_pictureBox.Width - RemoveButtonSize - 6, 6)
     End Sub
 
-    ' ── Load from existing path (edit mode) ──────────────────────────────────
 
-    ''' <summary>
-    ''' Loads an already-saved image by its stored relative path or absolute path.
-    ''' Use this in edit mode to pre-populate the panel.
-    ''' </summary>
     Public Sub LoadImage(pathOrName As String)
         If String.IsNullOrWhiteSpace(pathOrName) Then
             ClearImage()
@@ -303,7 +278,7 @@ Public Class BaseImagePanel
 
         Dim ext As String = Path.GetExtension(fullPath).ToLowerInvariant()
 
-        ' ── FIX: use Array.IndexOf ────────────────────────────────────────
+
         If Array.IndexOf(AllowedExtensions, ext) = -1 Then
             OnValidationError()
             MessageBox.Show(
@@ -344,10 +319,6 @@ Public Class BaseImagePanel
         End Try
     End Sub
 
-    ''' <summary>
-    ''' Loads a saved image by bare filename (no extension).
-    ''' Tries .jpg, .jpeg, .png in order.
-    ''' </summary>
     Public Sub LoadImageByName(fileName As String)
         If String.IsNullOrWhiteSpace(fileName) Then
             ClearImage()
@@ -388,12 +359,6 @@ Public Class BaseImagePanel
 
     ' ── Public Properties ────────────────────────────────────────────────────
 
-    ''' <summary>
-    ''' Returns the relative path where this image will be (or already is) saved.
-    ''' e.g. "images\items\item_20260505_143022_1234.jpg"
-    ''' Returns String.Empty when no image is loaded.
-    ''' Satisfies both direct access and IValueProvider.
-    ''' </summary>
     Public ReadOnly Property Value As String Implements IValueProvider.Value
         Get
             Return _relativePath   ' Empty when no image; real path the moment one is picked.
@@ -430,7 +395,7 @@ Public Class BaseImagePanel
         End Set
     End Property
 
-    ' ── Validation Styling ───────────────────────────────────────────────────
+    ' ── Validation Styling
 
     Public Sub OnValidationError() Implements IValidationStyleable.OnValidationError
         _pictureBox.BackColor = Color.FromArgb(255, 235, 238)
@@ -440,7 +405,7 @@ Public Class BaseImagePanel
         _pictureBox.BackColor = Color.FromArgb(245, 247, 250)
     End Sub
 
-    ' ── Dispose ──────────────────────────────────────────────────────────────
+    ' ── Dispose 
 
     Protected Overrides Sub Dispose(disposing As Boolean)
         If disposing Then _pictureBox.Image?.Dispose()

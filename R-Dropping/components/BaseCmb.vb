@@ -219,6 +219,18 @@ Public Class BaseComboBox
     Private Sub BaseComboBox_Load(sender As Object, e As EventArgs) Handles MyBase.Load
     End Sub
 
+    Public Function GetDisplayText() As String
+        If Not String.IsNullOrWhiteSpace(_selectedDisplay) Then
+            Return _selectedDisplay
+        End If
+
+        Dim match = _comboItems.FirstOrDefault(Function(x) x.Id = _selectedId)
+        If match IsNot Nothing Then
+            Return match.Display
+        End If
+
+        Return String.Empty
+    End Function
 End Class
 
 
@@ -498,6 +510,8 @@ Public Class ComboDropdownPanel
 
         Me.Height = Math.Max(totalHeight, 80) ' enforce minimum
     End Sub
+
+
 
 End Class
 

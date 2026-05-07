@@ -81,12 +81,12 @@
 
         ' Initialize Config
 
-        ConfigManager.EnsureConfigExists(Of DbConfig)()
+        Config.EnsureConfigExists(Of DbConfig)()
     End Sub
 
     Private Sub renderConfigPanelContent()
 
-        configVal = ConfigManager.Load(Of DbConfig)()
+        configVal = Config.Load(Of DbConfig)()
 
         With serverInput
             .LabelText = Strings.SERVER_LBL
@@ -178,7 +178,7 @@
                                       configVal.DB_PWD,
                                       configVal.DB_NAME)
 
-            ConfigManager.Save(configVal)
+            Config.Save(configVal)
 
             Dim completed As Boolean = Await DialogTypes.ShowLoadingUntilAsync(
                 loadingDlg,

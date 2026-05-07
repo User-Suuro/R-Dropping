@@ -25,6 +25,7 @@ Public Class EmployeePage
         Me.Controls.Add(_dgv)
         root.RootInstance.SetRouteLabel(routeName)
         AddHandler _dgv.AfterPageApplied, Sub(s, e) HandleCol()
+        AddHandler _dgv.DataGridView.SelectionChanged, AddressOf HandleButtonState
     End Sub
 
 
@@ -173,6 +174,63 @@ Public Class EmployeePage
         End If
 
         ' Handle error
+
+    End Sub
+
+    Private Sub HandleButtonState(sender As Object, e As EventArgs)
+
+        If _dgv.DataGridView.SelectedRows.Count = 0 Then
+            _updateBtn.Enabled = False
+            _deleteBtn.Enabled = False
+            Return
+        End If
+
+        Dim selectedRow = _dgv.GetSelectedRow()
+
+        Dim selectedId As Integer =
+        Convert.ToInt32(selectedRow.Cells(Employee.id).Value)
+
+        Dim selectedPosition As String =
+        selectedRow.Cells(Employee.position).Value.ToString().Trim()
+
+        Dim currentPosition As String =
+        session.SessionPosition.Trim()
+        Dim isSameUser As Boolean =
+        (selectedId = session.SessionUserID)
+
+        Dim canManage As Boolean = False
+
+        Select Case currentPosition.ToLower()
+
+            Case "admin"
+
+
+                If selectedPosition.Equals("Manager", StringComparison.OrdinalIgnoreCase) OrElse
+               selectedPosition.Equals("Staff", StringComparison.OrdinalIgnoreCase) Then
+
+                    canManage = True
+                End If
+
+            Case "manager"
+
+                If selectedPosition.Equals("Staff", StringComparison.OrdinalIgnoreCase) Then
+                    canManage = True
+                End If
+
+            Case Else
+
+
+                canManage = False
+
+        End Select
+
+        ' Cannot manage yourself
+        If isSameUser Then
+            canManage = False
+        End If
+
+        _updateBtn.Enabled = canManage
+        _deleteBtn.Enabled = canManage
 
     End Sub
 

@@ -84,9 +84,7 @@ Public Class EmployeeForm
         _cbxPosition = New BaseComboBox("Position") With {
             .Placeholder = "Select position...",
             .SearchEnabled = False,
-            .Items = New List(Of String) From {
-                "Admin", "Manager", "Staff"
-            }
+            .Items = GetAllowedPositions()
         }
         _cbxPosField = New ValidationPanel(_cbxPosition)
         _cbxPosField.SetValidator(New InputValidator().Required())
@@ -171,6 +169,31 @@ Public Class EmployeeForm
         AddHandler _addButton.Click, AddressOf QueryEmployee
         AddHandler _cancelButton.Click, AddressOf CancelAdd
     End Sub
+
+    Private Function GetAllowedPositions() As List(Of String)
+
+        Dim currentPosition As String =
+        session.SessionPosition.Trim().ToLower()
+
+        Select Case currentPosition
+
+            Case "admin"
+                Return New List(Of String) From {
+                "Manager",
+                "Staff"
+            }
+
+            Case "manager"
+                Return New List(Of String) From {
+                "Staff"
+            }
+
+            Case Else
+                Return New List(Of String)
+
+        End Select
+
+    End Function
 
     Private Async Sub handleEditMode(id As Integer)
         _addButton.Text = "Save"

@@ -665,7 +665,8 @@ Public Class DropOffForm
                     _itemPriceInp.Value,
                     _dailyPricingPlaholder.Value,
                     _basePricingPlacholder.Value,
-                    DateTime.Now
+                    DateTime.Now,
+                    session.SessionEmail
                 )
             End If
 
@@ -812,7 +813,8 @@ Public Class DropOffForm
         itemPrice As String,
         incrementFee As String,
         baseFee As String,
-        dropOffDate As DateTime
+        dropOffDate As DateTime,
+        employeeName As String
     )
 
         Try
@@ -842,7 +844,8 @@ Public Class DropOffForm
                     "Item Price",
                     "Increment Fee",
                     "Base Fee",
-                    "Drop Off Date"
+                    "Drop Off Date",
+                    "Processed by"
                 }
 
                 Dim values As String() = {
@@ -852,7 +855,8 @@ Public Class DropOffForm
                     itemPrice,
                     incrementFee,
                     baseFee,
-                    dropOffDate.ToString("MMMM dd, yyyy hh:mm tt")
+                    dropOffDate.ToString("MMMM dd, yyyy hh:mm tt"),
+                    employeeName
                 }
 
                 For i As Integer = 0 To labels.Length - 1

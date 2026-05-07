@@ -9,6 +9,16 @@
     Private RouteLabel As BaseLabel
     Private _activeNavBtn As NavBtn = Nothing
 
+    Private homeBtn As NavBtn
+    Private dropOffBtn As NavBtn
+    Private employeesBtn As NavBtn
+    Private buyerBtn As NavBtn
+    Private sellersBtn As NavBtn
+    Private courierBtn As NavBtn
+    Private pricingBtn As NavBtn
+    Private storageBtn As NavBtn
+
+
     Public Shared rootNav As NavigationManager
 
     Public Sub New()
@@ -70,14 +80,14 @@
             .Margin = Padding.Empty
         }
 
-        Dim homeBtn As New NavBtn("Dashboard", SidebarContainer.Width)
-        Dim dropOffBtn As New NavBtn("Drop-off", SidebarContainer.Width)
-        Dim employeesBtn As New NavBtn("Employees", SidebarContainer.Width)
-        Dim buyerBtn As New NavBtn("Buyers", SidebarContainer.Width)
-        Dim sellersBtn As New NavBtn("Sellers", SidebarContainer.Width)
-        Dim courierBtn As New NavBtn("Courier", SidebarContainer.Width)
-        Dim pricingBtn As New NavBtn("Pricing", SidebarContainer.Width)
-        Dim storageBtn As New NavBtn("Storage", SidebarContainer.Width)
+        homeBtn = New NavBtn("Dashboard", SidebarContainer.Width)
+        dropOffBtn = New NavBtn("Drop-off", SidebarContainer.Width)
+        employeesBtn = New NavBtn("Employees", SidebarContainer.Width)
+        buyerBtn = New NavBtn("Buyers", SidebarContainer.Width)
+        sellersBtn = New NavBtn("Sellers", SidebarContainer.Width)
+        courierBtn = New NavBtn("Courier", SidebarContainer.Width)
+        pricingBtn = New NavBtn("Pricing", SidebarContainer.Width)
+        storageBtn = New NavBtn("Storage", SidebarContainer.Width)
 
         Dim exitBtn As New NavBtn("Logout", SidebarContainer.Width)
 
@@ -142,8 +152,6 @@
             SetActiveNav(storageBtn)
         End Sub
 
-
-
         AddHandler exitBtn.ButtonControl.Click,
         Sub(sender, e)
             Form1.Instance.ShowLoginScreen()
@@ -159,6 +167,8 @@
             .Add(storageBtn)
         End With
 
+        ApplySidebarPermissions()
+
         SidebarContainer.Controls.Add(Sidebar)
         SidebarContainer.Controls.Add(exitBtn)
 
@@ -171,13 +181,48 @@
         })
 
 
-
-
         Me.Controls.Add(MainContent)
         Me.Controls.Add(SidebarContainer)
         Me.Controls.Add(TopPanel)
 
     End Sub
+    Private Sub ApplySidebarPermissions()
+
+        Dim role As String =
+        session.SessionPosition.Trim().ToLower()
+
+        homeBtn.Visible = False
+        employeesBtn.Visible = False
+        dropOffBtn.Visible = False
+        storageBtn.Visible = False
+        sellersBtn.Visible = False
+        buyerBtn.Visible = False
+        pricingBtn.Visible = False
+        storageBtn.Visible = False
+        buyerBtn.Visible = False
+
+        Select Case role
+            Case "admin"
+                homeBtn.Visible = True
+                employeesBtn.Visible = True
+                dropOffBtn.Visible = True
+                pricingBtn.Visible = True
+                storageBtn.Visible = True
+                sellersBtn.Visible = True
+                buyerBtn.Visible = True
+
+            Case "manager"
+                homeBtn.Visible = True
+                employeesBtn.Visible = True
+                storageBtn.Visible = True
+                buyerBtn.Visible = True
+                sellersBtn.Visible = True
+            Case "staff"
+                dropOffBtn.Visible = True
+        End Select
+
+    End Sub
+
 
     Private Sub showUnavailablePage()
         Dim dlg = New BaseDialog()

@@ -257,6 +257,7 @@
     <Compile Include="routes\storage\StoragePage.vb">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="utils\session.vb" />
     <Compile Include="utils\config.vb" />
     <Compile Include="utils\db.vb" />
     <Compile Include="Form1.vb">

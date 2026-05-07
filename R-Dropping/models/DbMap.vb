@@ -5,6 +5,8 @@
     Public Shared ReadOnly middle_name As String = "middle_name"
     Public Shared ReadOnly last_name As String = "last_name"
     Public Shared ReadOnly position As String = "position"
+    Public Shared ReadOnly email As String = "email"
+    Public Shared ReadOnly password As String = "password"
     Public Shared ReadOnly created_at As String = "created_at"
 End Class
 
@@ -66,6 +68,7 @@ Public Class Item
     Public Shared ReadOnly pricing_id As String = "pricing_id"
     Public Shared ReadOnly buyer_id As String = "buyer_id"
     Public Shared ReadOnly name As String = "item_name"
+    Public Shared ReadOnly item_price As String = "item_price"
     Public Shared ReadOnly desc As String = "description"
     Public Shared ReadOnly img_path As String = "image_path"
     Public Shared ReadOnly drop_off_date As String = "drop_off_date"

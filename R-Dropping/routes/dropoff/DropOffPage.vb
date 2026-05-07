@@ -211,7 +211,7 @@ Public Class DropOffPage
                 End If
             Next
 
-            Dim headerNames As New Dictionary(Of String, String) From {
+        Dim headerNames As New Dictionary(Of String, String) From {
             {Item.drop_off_date, "Date"},
             {"drop_off_time", "Time"},
             {Item.name, "Item Name"},
@@ -220,10 +220,10 @@ Public Class DropOffPage
             {"pricing", "Pricing"},
             {"storage", "Storage"},
             {Item.desc, "Description"},
-            {Item.managed_by, "Manager"}
+            {Item.managed_by, "Processed by"}
         }
 
-            For Each kvp In headerNames
+        For Each kvp In headerNames
                 If _dgv.DataGridView.Columns.Contains(kvp.Key) Then
                     _dgv.DataGridView.Columns(kvp.Key).HeaderText = kvp.Value
                 End If

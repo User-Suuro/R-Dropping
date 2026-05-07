@@ -1,6 +1,5 @@
 ﻿Imports System.IO
 Imports ClosedXML.Excel
-Imports MySql.Data.MySqlClient
 
 Public Class DropOffForm
     Inherits BasePanel
@@ -8,9 +7,6 @@ Public Class DropOffForm
     Private _subContainerLeft As PrimaryFlowLayoutPanel
     Private _subContainerRight As PrimaryFlowLayoutPanel
     Private _tableFormat As TableLayoutPanel
-
-    Private _managedCmb As BaseComboBox
-    Private _managedField As ValidationPanel
 
     Private _sellerCmb As BaseComboBox
     Private _sellerField As ValidationPanel
@@ -29,6 +25,9 @@ Public Class DropOffForm
     Private _itemDescInp As BaseInputPanel
     Private _itemDescField As ValidationPanel
 
+    Private _itemPriceInp As BaseNumericPanel
+    Private _itemPriceField As ValidationPanel
+
     Private _imagePanel As BaseImagePanel
     Private _imageField As ValidationPanel
 
@@ -44,6 +43,8 @@ Public Class DropOffForm
     Private _buttontable As TableLayoutPanel
     Private _id As Integer?
 
+    Private managed_by As Integer
+
     Public Sub New(Optional id As Integer? = Nothing)
         Me.Dock = DockStyle.Fill
         _id = id
@@ -58,6 +59,7 @@ Public Class DropOffForm
     Public Sub InitializeComponent()
 
         ' Containers
+        managed_by = session.SessionUserID
 
         _tableFormat = New TableLayoutPanel() With {
             .ColumnCount = 2,
@@ -99,20 +101,10 @@ Public Class DropOffForm
         }
 
 
-        ' managed by
-        _managedCmb = New BaseComboBox("Managed by") With {
-            .Placeholder = "Select Manager"
-        }
-
-        _managedField = New ValidationPanel(_managedCmb)
-        _managedField.SetValidator(New InputValidator().Required())
-
-
         ' seller 
 
         _sellerCmb = New BaseComboBox("Seller") With {
-            .Placeholder = "Select Seller",
-            .Width = _managedCmb.Width
+            .Placeholder = "Select Seller"
         }
 
         _sellerField = New ValidationPanel(_sellerCmb)
@@ -122,8 +114,7 @@ Public Class DropOffForm
         ' buyer
 
         _buyerCmb = New BaseComboBox("Buyer") With {
-            .Placeholder = "Select Buyer",
-            .Width = _managedCmb.Width
+            .Placeholder = "Select Buyer"
         }
 
         _buyerField = New ValidationPanel(_buyerCmb)
@@ -200,6 +191,17 @@ Public Class DropOffForm
         _itemDescField = New ValidationPanel(_itemDescInp)
         _itemDescField.SetValidator(New InputValidator().NoSpecialChar())
 
+        ' item price
+        _itemPriceInp = New BaseNumericPanel() With {
+            .LabelText = "Item Price"
+        }
+
+        _itemPriceInp.SetPricingMode()
+
+        AddHandler _itemPriceInp.KeyPress, AddressOf AllowNumericOnly
+
+        _itemPriceField = New ValidationPanel(_itemPriceInp)
+        _itemPriceField.SetValidator(New InputValidator().Required())
 
         ' item image path
         _imagePanel = New BaseImagePanel() With {
@@ -290,12 +292,12 @@ Public Class DropOffForm
         _buttontable.Controls.Add(_addbutton, 1, 0)
 
         With _subContainerLeft.Controls
-            .Add(_managedField)
             .Add(_sellerField)
             .Add(_buyerField)
             .Add(_pricingTable)
             .Add(_itemNameField)
             .Add(_itemDescField)
+            .Add(_itemPriceField)
         End With
 
         With _subContainerRight.Controls
@@ -306,13 +308,27 @@ Public Class DropOffForm
 
         Me.Controls.Add(_tableFormat)
 
-        ' bind event
+        ' bind events
 
         AddHandler _addbutton.Click, AddressOf QueryBuyer
         AddHandler _cancelbutton.Click, AddressOf canceladd
 
         AddHandler _pricingCmb.SelectedValueChanged, AddressOf PricingChanged
         AddHandler _storedCmb.SelectedValueChanged, AddressOf StorageChanged
+    End Sub
+
+    ''' <summary>
+    ''' Restricts the price input to digits and a single decimal point only.
+    ''' </summary>
+    Private Sub AllowNumericOnly(sender As Object, e As KeyPressEventArgs)
+        Dim inp = DirectCast(sender, TextBox)
+        Dim isDigit = Char.IsDigit(e.KeyChar)
+        Dim isDecimal = e.KeyChar = "."c AndAlso Not inp.Text.Contains(".")
+        Dim isBackspace = e.KeyChar = ControlChars.Back
+
+        If Not (isDigit OrElse isDecimal OrElse isBackspace) Then
+            e.Handled = True
+        End If
     End Sub
 
     Private Sub PricingChanged(sender As Object, e As EventArgs)
@@ -394,13 +410,13 @@ Public Class DropOffForm
     End Sub
 
     Private Function validateallinputs() As Boolean
-        Return {_managedField, _sellerField, _buyerField, _pricingField, _itemNameField, _itemDescField, _imageField, _storedField, _storedRemainingField}.All(Function(f) f.ValidateInput())
+        Return {_sellerField, _buyerField, _pricingField, _itemNameField, _itemDescField, _itemPriceField, _imageField, _storedField, _storedRemainingField}.All(Function(f) f.ValidateInput())
     End Function
 
     Private Async Sub loadasync()
         Await loadDataForInput()
         If _id.HasValue() Then
-            Await fetchDataForEditMode(_id.Value)
+            Await fetchdataforeditmode(_id.Value)
         End If
     End Sub
 
@@ -413,7 +429,6 @@ Public Class DropOffForm
                 loadingDlg,
                 Form1.Instance,
                 Async Function()
-                    Await LoadManagers()
                     Await LoadSellers()
                     Await LoadBuyers()
                     Await LoadPricing()
@@ -428,27 +443,6 @@ Public Class DropOffForm
             MessageBox.Show(ex.Message)
         End Try
 
-    End Function
-
-    Private Async Function LoadManagers() As Task
-        Dim list As New List(Of ComboItem)
-
-        Dim sql As String =
-        $"SELECT {Employee.id}, CONCAT({Employee.first_name}, ' ', {Employee.last_name}) AS name
-        FROM {Employee.table_name}"
-
-        Using reader = Await ReadQueryAsync(sql)
-            If reader IsNot Nothing Then
-                While Await reader.ReadAsync()
-                    list.Add(New ComboItem(
-                    reader(Employee.id).ToString(),
-                    reader("name").ToString()
-                ))
-                End While
-            End If
-        End Using
-
-        _managedCmb.ComboItems = list
     End Function
 
     Private Async Function LoadSellers() As Task
@@ -622,17 +616,18 @@ Public Class DropOffForm
 
         Dim itemSql As String =
         $"INSERT INTO {Item.table_name} " &
-        $"({Item.managed_by}, {Item.pricing_id}, {Item.buyer_id}, {Item.seller_id}, {Item.name}, {Item.desc}, {Item.img_path}) " &
-        $"VALUES (@managed_by, @pricing_id, @buyer_id, @seller_id, @item_name, @description, @img_path)"
+        $"({Item.managed_by}, {Item.pricing_id}, {Item.buyer_id}, {Item.seller_id}, {Item.name}, {Item.desc}, {Item.img_path}, {Item.item_price}) " &
+        $"VALUES (@managed_by, @pricing_id, @buyer_id, @seller_id, @item_name, @description, @img_path, @item_price)"
 
         Dim itemParams As New Dictionary(Of String, Object) From {
-            {"@managed_by", _managedCmb.SelectedValue},
+            {"@managed_by", managed_by},
             {"@pricing_id", _pricingCmb.SelectedValue},
             {"@seller_id", _sellerCmb.SelectedValue},
             {"@buyer_id", _buyerCmb.SelectedValue},
             {"@item_name", _itemNameInp.Value},
             {"@description", ToDbNull(_itemDescInp.Value)},
-            {"@img_path", _imagePanel.SaveImage()}
+            {"@img_path", _imagePanel.SaveImage()},
+            {"@item_price", Decimal.Parse(_itemPriceInp.Value)}
         }
 
         Try
@@ -660,21 +655,18 @@ Public Class DropOffForm
                 {"@storage_id", _storedCmb.SelectedValue}
             }
 
-
-
             Dim storedRows As Integer = Await ExecuteQueryAsync(storedSql, storedParams)
 
             If storedRows > 0 Then
-
                 GenerateSellerReceipt(
                     _sellerCmb.GetDisplayText(),
+                    _buyerCmb.GetDisplayText(),
                     _itemNameInp.Value,
+                    _itemPriceInp.Value,
                     _dailyPricingPlaholder.Value,
                     _basePricingPlacholder.Value,
-                    _managedCmb.GetDisplayText(),
                     DateTime.Now
                 )
-
             End If
 
             Return storedRows > 0
@@ -687,11 +679,8 @@ Public Class DropOffForm
     End Function
 
 
-
-
     Private Async Function fetchdataforeditmode(id As Integer) As Task
         _addbutton.Text = "Save"
-
 
         RemoveHandler _storedCmb.SelectedValueChanged, AddressOf StorageChanged
         RemoveHandler _pricingCmb.SelectedValueChanged, AddressOf PricingChanged
@@ -705,6 +694,7 @@ Public Class DropOffForm
             i.{Item.name},
             i.{Item.desc},
             i.{Item.img_path},
+            i.{Item.item_price},
             st.{Stored.storage_id},
             p.{Pricing.base_fee},
             p.{Pricing.daily_increment_fee}
@@ -722,7 +712,6 @@ Public Class DropOffForm
         Try
             Using reader = Await ReadQueryAsync(sql, params)
                 If reader IsNot Nothing AndAlso Await reader.ReadAsync() Then
-                    _managedCmb.SetValue(reader(Item.managed_by).ToString())
                     _sellerCmb.SetValue(reader(Item.seller_id).ToString())
                     _buyerCmb.SetValue(reader(Item.buyer_id).ToString())
 
@@ -731,9 +720,8 @@ Public Class DropOffForm
 
                     _itemNameInp.SetValue(reader(Item.name).ToString())
                     _itemDescInp.SetValue(If(IsDBNull(reader(Item.desc)), "", reader(Item.desc)))
+                    _itemPriceInp.SetValue(reader(Item.item_price).ToString())
 
-                    _pricingCmb.SetValue(reader(Item.pricing_id).ToString())
-                    _pricingCmb.Enabled = False
                     _basePricingPlacholder.SetValue(reader(Pricing.base_fee).ToString())
                     _dailyPricingPlaholder.SetValue(reader(Pricing.daily_increment_fee).ToString())
 
@@ -751,13 +739,13 @@ Public Class DropOffForm
         Catch ex As Exception
             MessageBox.Show(ex.Message)
         Finally
-
             AddHandler _storedCmb.SelectedValueChanged, AddressOf StorageChanged
             AddHandler _pricingCmb.SelectedValueChanged, AddressOf PricingChanged
         End Try
 
         StorageChanged(Nothing, EventArgs.Empty)
     End Function
+
     Private Async Function editQuery() As Task(Of Boolean)
         Dim sql As String =
         $"UPDATE {Item.table_name} SET
@@ -766,16 +754,18 @@ Public Class DropOffForm
             {Item.buyer_id}   = @buyer_id,
             {Item.name}       = @item_name,
             {Item.desc}       = @description,
-            {Item.img_path}   = @img_path
+            {Item.img_path}   = @img_path,
+            {Item.item_price}      = @item_price
         WHERE {Item.id} = @id"
 
         Dim params As New Dictionary(Of String, Object) From {
-            {"@managed_by", _managedCmb.SelectedValue},
+            {"@managed_by", managed_by},
             {"@seller_id", _sellerCmb.SelectedValue},
             {"@buyer_id", _buyerCmb.SelectedValue},
             {"@item_name", _itemNameInp.Value},
             {"@description", ToDbNull(_itemDescInp.Value)},
             {"@img_path", _imagePanel.SaveImage()},
+            {"@item_price", Decimal.Parse(_itemPriceInp.Value)},
             {"@id", _id.Value}
         }
 
@@ -816,13 +806,14 @@ Public Class DropOffForm
 
 
     Private Sub GenerateSellerReceipt(
-    sellerName As String,
-    itemName As String,
-    incrementFee As String,
-    baseFee As String,
-    processedBy As String,
-    dropOffDate As DateTime
-)
+        sellerName As String,
+        buyerName As String,
+        itemName As String,
+        itemPrice As String,
+        incrementFee As String,
+        baseFee As String,
+        dropOffDate As DateTime
+    )
 
         Try
 
@@ -845,28 +836,28 @@ Public Class DropOffForm
                 Dim ws = workbook.Worksheets.Add("Seller Receipt")
 
                 Dim labels As String() = {
-                "Seller Name",
-                "Item Name",
-                "Increment Fee",
-                "Base Fee",
-                "Processed By",
-                "Drop Off Date"
-            }
+                    "Seller Name",
+                    "Buyer Name",
+                    "Item Name",
+                    "Item Price",
+                    "Increment Fee",
+                    "Base Fee",
+                    "Drop Off Date"
+                }
 
                 Dim values As String() = {
-                sellerName,
-                itemName,
-                incrementFee,
-                baseFee,
-                processedBy,
-                dropOffDate.ToString("MMMM dd, yyyy hh:mm tt")
-            }
+                    sellerName,
+                    buyerName,
+                    itemName,
+                    itemPrice,
+                    incrementFee,
+                    baseFee,
+                    dropOffDate.ToString("MMMM dd, yyyy hh:mm tt")
+                }
 
                 For i As Integer = 0 To labels.Length - 1
-
                     ws.Cell(i + 1, 1).Value = labels(i)
                     ws.Cell(i + 1, 2).Value = values(i)
-
                 Next
 
                 ws.Columns().AdjustToContents()
@@ -876,17 +867,17 @@ Public Class DropOffForm
             End Using
 
             Process.Start(New ProcessStartInfo(fullPath) With {
-            .UseShellExecute = True
-        })
+                .UseShellExecute = True
+            })
 
         Catch ex As Exception
 
             MessageBox.Show(
-            ex.Message,
-            "Receipt Error",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Error
-        )
+                ex.Message,
+                "Receipt Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            )
 
         End Try
 

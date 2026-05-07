@@ -4,26 +4,31 @@
     Public Shared Instance As Form1
     Public mainPanel As New PrimaryPanel()
 
-    Private configContainerPanel As New PrimaryPanel()
-    Private configSubPanel As New PrimaryFlowLayoutPanel()
-
-    Private serverInput As New BaseInputPanel()
-    Private uidInput As New BaseInputPanel()
-    Private pwdInput As New BaseInputPanel()
-    Private dbNameInput As New BaseInputPanel()
-    Private dbPortInput As New BaseInputPanel()
-
+    ' --- DB Config fields ---
+    Private configContainerPanel As PrimaryPanel
+    Private configSubPanel As FlowLayoutPanel
+    Private serverInput As BaseInputPanel
+    Private uidInput As BaseInputPanel
+    Private pwdInput As BaseInputPanel
+    Private dbNameInput As BaseInputPanel
+    Private dbPortInput As BaseInputPanel
     Private serverField As ValidationPanel
     Private uidField As ValidationPanel
     Private dbNameField As ValidationPanel
     Private dbPortField As ValidationPanel
-
-    Private btnSubmit As New BaseButton()
+    Private btnSubmit As BaseButton
     Private configVal As New DbConfig()
 
-    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+    ' --- Login fields ---
+    Private loginContainerPanel As PrimaryPanel
+    Private loginSubPanel As FlowLayoutPanel
+    Private emailInput As BaseInputPanel
+    Private passwordInput As BaseInputPanel
+    Private emailField As ValidationPanel
+    Private passwordField As ValidationPanel
+    Private btnLogin As BaseButton
 
-        ' main container
+    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Instance = Me
         mainPanel.Dock = DockStyle.Fill
         nav = New NavigationManager(mainPanel)
@@ -39,30 +44,40 @@
         End With
 
         Themes.ApplyLightTheme()
-        Dim bg As New PictureBox()
+        Config.EnsureConfigExists(Of DbConfig)()
+        ShowDbConfig()
+    End Sub
 
+    ' ===================== DB CONFIG SCREEN =====================
+
+    Public Sub ShowDbConfig()
+        mainPanel.Controls.Clear()
+
+        Dim bg As New PictureBox()
         With bg
             .Dock = DockStyle.Fill
             .SizeMode = PictureBoxSizeMode.StretchImage
             .Image = My.Resources.Resource1.login_animation
         End With
-
-
         mainPanel.Controls.Add(bg)
 
-        ' Overlay
         Dim overlay As Panel = OverlayPanel.CreateOverlay()
-
         overlay.Dock = DockStyle.Fill
         bg.Controls.Add(overlay)
 
-        ' Config Panel
+        configContainerPanel = New PrimaryPanel()
+        configSubPanel = New FlowLayoutPanel()
+        serverInput = New BaseInputPanel()
+        uidInput = New BaseInputPanel()
+        pwdInput = New BaseInputPanel()
+        dbNameInput = New BaseInputPanel()
+        dbPortInput = New BaseInputPanel()
+        btnSubmit = New BaseButton()
 
         With configContainerPanel
             .AutoSize = True
             .AutoSizeMode = AutoSizeMode.GrowAndShrink
         End With
-
         overlay.Controls.Add(configContainerPanel)
 
         With configSubPanel
@@ -70,31 +85,23 @@
             .FlowDirection = FlowDirection.TopDown
             .AutoSize = True
             .AutoSizeMode = AutoSizeMode.GrowAndShrink
+            .BackColor = Color.White
         End With
-
         configContainerPanel.Controls.Add(configSubPanel)
 
-        renderConfigPanelContent()
-
+        RenderConfigContent()
         LayoutHelper.CenterBoth(configContainerPanel)
         LayoutHelper.EnableAutoCenter(configContainerPanel)
-
-        ' Initialize Config
-
-        Config.EnsureConfigExists(Of DbConfig)()
     End Sub
 
-    Private Sub renderConfigPanelContent()
-
+    Private Sub RenderConfigContent()
         configVal = Config.Load(Of DbConfig)()
 
         With serverInput
             .LabelText = Strings.SERVER_LBL
             .InputControl.PlaceholderText = Strings.SERVER_PLACEHOLDER
             .InputControl.Text = configVal.DB_SERVER
-
         End With
-
         serverField = New ValidationPanel(serverInput)
         serverField.SetValidator(New InputValidator().Required())
 
@@ -103,7 +110,6 @@
             .InputControl.PlaceholderText = Strings.UID_PLACEHOLDER
             .InputControl.Text = configVal.DB_UID
         End With
-
         uidField = New ValidationPanel(uidInput)
         uidField.SetValidator(New InputValidator().Required())
 
@@ -119,7 +125,6 @@
             .InputControl.PlaceholderText = Strings.DB_NAME_PLACEHOLDER
             .InputControl.Text = configVal.DB_NAME
         End With
-
         dbNameField = New ValidationPanel(dbNameInput)
         dbNameField.SetValidator(New InputValidator().Required())
 
@@ -128,7 +133,6 @@
             .InputControl.PlaceholderText = Strings.DB_PORT_PLACEHOLDER
             .InputControl.Text = configVal.DB_PORT
         End With
-
         dbPortField = New ValidationPanel(dbPortInput)
         dbPortField.SetValidator(New InputValidator().Required())
 
@@ -137,10 +141,6 @@
             .SetPrimary()
             .Margin = New Padding(0, 8, 0, 0)
         End With
-
-        Dim overlay As Panel = OverlayPanel.CreateOverlay()
-
-        overlay.Dock = DockStyle.Fill
 
         With configSubPanel.Controls
             .Add(serverField)
@@ -155,11 +155,9 @@
     End Sub
 
     Private Async Sub SaveConfig()
-        Dim dlg As New BaseDialog()
+        If Not ValidateDbInputs() Then Exit Sub
 
-        If Not ValidateAllInputs() Then
-            Exit Sub
-        End If
+        Dim dlg As New BaseDialog()
 
         Try
             With configVal
@@ -170,62 +168,243 @@
                 .DB_NAME = dbNameInput.InputControl.Text
             End With
 
-            Dim loadingDlg As New BaseDialog()
-
             Db.UpdateConnectionString(configVal.DB_SERVER,
                                       configVal.DB_PORT,
                                       configVal.DB_UID,
                                       configVal.DB_PWD,
                                       configVal.DB_NAME)
-
             Config.Save(configVal)
 
-            Dim completed As Boolean = Await DialogTypes.ShowLoadingUntilAsync(
+            Dim loadingDlg As New BaseDialog()
+
+            Await DialogTypes.ShowLoadingUntilAsync(
                 loadingDlg,
                 Me,
                 Async Function()
                     Dim connected As Boolean = Await IsConnectedAsync()
 
-                    If connected Then
+                    If Not connected Then
                         DialogTypes.Apply(dlg,
-                          DialogType.Info,
-                          "Connected",
-                          "Sucessfully connected to Database")
-
-                        Dim result = Await dlg.ShowBaseDialogAsync(Me)
-
-                        If result = DialogResultType.Confirm Then
-                            nav.GoToPage(New root())
-                        End If
-                    Else
-                        DialogTypes.Apply(dlg,
-                          DialogType.Error,
-                          "Failed to Connect",
-                          "Database not be found")
-
+                            DialogType.Error,
+                            "Failed to Connect",
+                            "Database could not be found.")
                         dlg.ShowBaseDialog(Me)
+                        Return
                     End If
 
+                    ' ✅ Check if an admin account exists before going to login
+                    Dim adminExists As Boolean = Await CheckAdminExists()
+
+                    If adminExists Then
+                        ShowLoginScreen()
+                    Else
+                        ShowInitialAdminSetup()
+                    End If
                 End Function
             )
 
         Catch ex As Exception
             DialogTypes.Apply(dlg,
-                              DialogType.Error,
-                              "Error Saving Configuration",
-                              "An error occurred while saving the configuration. Please try again.")
-
+                DialogType.Error,
+                "Error Saving Configuration",
+                "An error occurred while saving the configuration. Please try again.")
             dlg.ShowBaseDialog(Me)
         End Try
     End Sub
 
-    Private Function ValidateAllInputs() As Boolean
+    Private Async Function CheckAdminExists() As Task(Of Boolean)
+        Dim sql As String =
+            $"SELECT COUNT(*) FROM {Employee.table_name}
+              WHERE {Employee.position} = @position"
+
+        Dim params As New Dictionary(Of String, Object) From {
+            {"@position", "Admin"}
+        }
+
+        Try
+            Using reader = Await ReadQueryAsync(sql, params)
+                If reader IsNot Nothing AndAlso Await reader.ReadAsync() Then
+                    Return Convert.ToInt32(reader(0)) > 0
+                End If
+            End Using
+        Catch ex As Exception
+            ' If query fails, fall through to login to be safe
+        End Try
+
+        Return False
+    End Function
+
+    Private Sub ShowInitialAdminSetup()
+        nav.GoToPage(New EmployeeForm(
+            lockPosition:="Admin",
+            hideCancel:=True,
+            onComplete:=AddressOf ShowLoginScreen
+        ))
+    End Sub
+
+    Private Function ValidateDbInputs() As Boolean
         Return {serverField, uidField, dbNameField, dbPortField}.All(Function(f) f.ValidateInput())
     End Function
 
+    ' ===================== LOGIN SCREEN =====================
+
+    Public Sub ShowLoginScreen()
+        mainPanel.Controls.Clear()
+
+        Dim bg As New PictureBox()
+        With bg
+            .Dock = DockStyle.Fill
+            .SizeMode = PictureBoxSizeMode.StretchImage
+            .Image = My.Resources.Resource1.login_animation
+        End With
+        mainPanel.Controls.Add(bg)
+
+        Dim overlay As Panel = OverlayPanel.CreateOverlay()
+        overlay.Dock = DockStyle.Fill
+        bg.Controls.Add(overlay)
+
+        loginContainerPanel = New PrimaryPanel()
+        loginSubPanel = New FlowLayoutPanel()
+        emailInput = New BaseInputPanel()
+        passwordInput = New BaseInputPanel()
+        btnLogin = New BaseButton()
+
+        With loginContainerPanel
+            .AutoSize = True
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink
+        End With
+        overlay.Controls.Add(loginContainerPanel)
+
+        With loginSubPanel
+            .Padding = New Padding(16)
+            .FlowDirection = FlowDirection.TopDown
+            .AutoSize = True
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink
+            .BackColor = Color.White
+        End With
+        loginContainerPanel.Controls.Add(loginSubPanel)
+
+        RenderLoginContent()
+        LayoutHelper.CenterBoth(loginContainerPanel)
+        LayoutHelper.EnableAutoCenter(loginContainerPanel)
+    End Sub
+
+    Private Sub RenderLoginContent()
+        With emailInput
+            .LabelText = "Email"
+            .InputControl.PlaceholderText = "Enter your email"
+        End With
+        emailField = New ValidationPanel(emailInput)
+        emailField.SetValidator(New InputValidator().Required())
+
+        With passwordInput
+            .LabelText = "Password"
+            .InputControl.PlaceholderText = "Enter your password"
+            .InputControl.UseSystemPasswordChar = True
+        End With
+        passwordField = New ValidationPanel(passwordInput)
+        passwordField.SetValidator(New InputValidator().Required())
+
+        With btnLogin
+            .Text = "Login"
+            .SetPrimary()
+            .Margin = New Padding(0, 8, 0, 0)
+        End With
+
+        With loginSubPanel.Controls
+            .Add(emailField)
+            .Add(passwordField)
+            .Add(btnLogin)
+        End With
+
+        AddHandler btnLogin.Click, AddressOf DoLogin
+    End Sub
+
+    Private Async Sub DoLogin()
+        If Not {emailField, passwordField}.All(Function(f) f.ValidateInput()) Then Exit Sub
+
+        Dim dlg As New BaseDialog()
+        Dim loadingDlg As New BaseDialog()
+
+        Try
+            Await DialogTypes.ShowLoadingUntilAsync(
+                loadingDlg,
+                Me,
+                Async Function()
+                    Await QueryLogin(dlg)
+                End Function
+            )
+
+        Catch ex As Exception
+            DialogTypes.Apply(dlg,
+                DialogType.Error,
+                "Login Error",
+                "An unexpected error occurred. Please try again.")
+            dlg.ShowBaseDialog(Me)
+        End Try
+    End Sub
+
+    Private Async Function QueryLogin(dlg As BaseDialog) As Task
+        Dim sql As String =
+            $"SELECT {Employee.id}, {Employee.email}, {Employee.password}, {Employee.position}
+              FROM {Employee.table_name}
+              WHERE {Employee.email} = @email"
+
+        Dim params As New Dictionary(Of String, Object) From {
+            {"@email", emailInput.InputControl.Text.Trim()}
+        }
+
+        Try
+            Using reader = Await ReadQueryAsync(sql, params)
+                If reader Is Nothing OrElse Not Await reader.ReadAsync() Then
+                    DialogTypes.Apply(dlg,
+                        DialogType.Error,
+                        "Login Failed",
+                        "No account found with that email.")
+                    dlg.ShowBaseDialog(Me)
+                    Return
+                End If
+
+                Dim storedEncrypted As String = reader(Employee.password).ToString()
+                Dim decrypted As String = session.Decrypt(storedEncrypted)
+
+                If decrypted <> passwordInput.InputControl.Text Then
+                    DialogTypes.Apply(dlg,
+                        DialogType.Error,
+                        "Login Failed",
+                        "Incorrect password.")
+                    dlg.ShowBaseDialog(Me)
+                    Return
+                End If
+
+                Dim success As Boolean = session.Login(
+                    CInt(reader(Employee.id)),
+                    reader(Employee.email).ToString(),
+                    passwordInput.InputControl.Text,
+                    reader(Employee.position).ToString()
+                )
+
+                If success Then
+                    nav.GoToPage(New root())
+                Else
+                    DialogTypes.Apply(dlg,
+                        DialogType.Error,
+                        "Login Failed",
+                        "An error occurred during login.")
+                    dlg.ShowBaseDialog(Me)
+                End If
+            End Using
+
+        Catch ex As Exception
+            DialogTypes.Apply(dlg,
+                DialogType.Error,
+                "Login Error",
+                ex.Message)
+            dlg.ShowBaseDialog(Me)
+        End Try
+    End Function
 
 End Class
-
 
 '  DIALOG COMPONENT 
 
@@ -273,8 +452,13 @@ Public Class BaseDialog
             .AutoSize = True
             .AutoSizeMode = AutoSizeMode.GrowAndShrink
             .Margin = Padding.Empty
+            .BackColor = Color.White
             .BorderStyle = BorderStyle.FixedSingle
         End With
+
+        Dim border As New Panel()
+
+
 
         ' TITLE
         lblTitle = New BaseLabel()
@@ -287,7 +471,8 @@ Public Class BaseDialog
         ' ICON
         picIcon = New PictureBox With {
             .SizeMode = PictureBoxSizeMode.CenterImage,
-            .Dock = DockStyle.Top
+            .Dock = DockStyle.Top,
+            .BackColor = Color.White
         }
 
         ' DESCRIPTION
@@ -305,7 +490,8 @@ Public Class BaseDialog
             .ColumnCount = 2,
             .Padding = Padding.Empty,
             .Dock = DockStyle.Top,
-            .CellBorderStyle = TableLayoutPanelCellBorderStyle.None
+            .CellBorderStyle = TableLayoutPanelCellBorderStyle.None,
+            .BackColor = Color.White
         }
 
         buttonTable.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 50))

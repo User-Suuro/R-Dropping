@@ -79,7 +79,7 @@
         Dim pricingBtn As New NavBtn("Pricing", SidebarContainer.Width)
         Dim storageBtn As New NavBtn("Storage", SidebarContainer.Width)
 
-        Dim exitBtn As New NavBtn("Exit", SidebarContainer.Width)
+        Dim exitBtn As New NavBtn("Logout", SidebarContainer.Width)
 
         exitBtn.Dock = DockStyle.Bottom
 
@@ -146,9 +146,8 @@
 
         AddHandler exitBtn.ButtonControl.Click,
         Sub(sender, e)
-            Form1.Instance.Close()
+            Form1.Instance.ShowLoginScreen()
         End Sub
-
         With Sidebar.Controls
             .Add(homeBtn)
             .Add(dropOffBtn)

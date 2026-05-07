@@ -1,4 +1,7 @@
-﻿Public Class DropOffClaimForm
+﻿Imports System.IO
+Imports ClosedXML.Excel
+
+Public Class DropOffClaimForm
     Inherits BasePanel
 
     Private _tableFormat As TableLayoutPanel
@@ -18,11 +21,13 @@
     ' Image
     Private _imagePanel As BaseImagePanel
 
-    ' Courier
     Private _courierCmb As BaseComboBox
     Private _courierField As ValidationPanel
     Private _shippingFeePanel As BaseNumericPanel
     Private _courierRow As TableLayoutPanel
+
+    Private _dropOffDate As DateTime
+    Private _pickupDate As DateTime
 
     Private _addButton As BaseButton
     Private _cancelButton As BaseButton
@@ -433,12 +438,27 @@
                 {Delivery.shipping_fee}  = VALUES({Delivery.shipping_fee})"
 
                 Dim shippingParams As New Dictionary(Of String, Object) From {
-                {"@item_id", _id.Value},
-                {"@courier_id", _courierCmb.SelectedValue},
-                {"@shipping_fee", _shippingFeePanel.NumericValue}
-            }
+                    {"@item_id", _id.Value},
+                    {"@courier_id", _courierCmb.SelectedValue},
+                    {"@shipping_fee", _shippingFeePanel.NumericValue}
+                }
 
                 Await ExecuteQueryAsync(shippingSql, shippingParams)
+
+                GenerateClaimReceipt(
+                    _sellerNamePlaceholder.Value,
+                    _buyerNamePlaceholder.Value,
+                    _itemNamePlaceholder.Value,
+                    _dailyPricingPlaceholder.Value,
+                    _basePricingPlaceholder.Value,
+                    _courierCmb.GetDisplayText(),
+                    _shippingFeePanel.Value,
+                    _daysPlaceholder.Value,
+                    _totalFeePlaceholder.Value,
+                    _dropOffDate,
+                    claimTime
+                )
+
             End If
 
             Return True
@@ -449,6 +469,102 @@
         End Try
 
     End Function
+
+    Private Sub GenerateClaimReceipt(
+        sellerName As String,
+        buyerName As String,
+        itemName As String,
+        incrementFee As String,
+        baseFee As String,
+        courierName As String,
+        shippingFee As String,
+        totalDays As String,
+        totalAmount As String,
+        dropOffDate As DateTime,
+        pickupDate As DateTime
+    )
+
+        Try
+
+            Dim relativePath As String =
+        Config.BuildRelativePath(
+            "receipts",
+            "claim",
+            "claim_receipt",
+            ".xlsx"
+        )
+
+            Dim fullPath As String =
+            Path.Combine(
+                Config.FindSolutionRoot(),
+                relativePath
+            )
+
+            Directory.CreateDirectory(
+            Path.GetDirectoryName(fullPath)
+        )
+
+            Using workbook As New XLWorkbook()
+
+                Dim ws = workbook.Worksheets.Add("Claim Receipt")
+
+                Dim labels As String() = {
+                    "Seller Name",
+                    "Buyer Name",
+                    "Item Name",
+                    "Increment Fee",
+                    "Base Fee",
+                    "Courier Name",
+                    "Shipping Fee",
+                    "Total Days",
+                    "Total Amount",
+                    "Drop Off Date",
+                    "Pickup Date"
+                }
+
+                Dim values As String() = {
+                    sellerName,
+                    buyerName,
+                    itemName,
+                    incrementFee,
+                    baseFee,
+                    If(String.IsNullOrWhiteSpace(courierName), "N/A", courierName),
+                    If(String.IsNullOrWhiteSpace(shippingFee), "0.00", shippingFee),
+                    totalDays,
+                    totalAmount,
+                    dropOffDate.ToString("MMMM dd, yyyy hh:mm tt"),
+                    pickupDate.ToString("MMMM dd, yyyy hh:mm tt")
+                }
+
+                For i As Integer = 0 To labels.Length - 1
+
+                    ws.Cell(i + 1, 1).Value = labels(i)
+                    ws.Cell(i + 1, 2).Value = values(i)
+
+                Next
+
+                ws.Columns().AdjustToContents()
+
+                workbook.SaveAs(fullPath)
+
+            End Using
+
+            Process.Start(New ProcessStartInfo(fullPath) With {
+            .UseShellExecute = True
+        })
+
+        Catch ex As Exception
+
+            MessageBox.Show(
+            ex.Message,
+            "Receipt Error",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Error
+        )
+
+        End Try
+
+    End Sub
 
     ' ── Helpers ───────────────────────────────────────────────────────────────
 

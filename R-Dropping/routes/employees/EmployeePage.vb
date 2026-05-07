@@ -114,7 +114,7 @@ Public Class EmployeePage
             loadingDlg,
             Form1.Instance,
             Async Function()
-                Dim sql As String = $"SELECT * FROM {Employee.table_name}"
+                Dim sql As String = $"SELECT {Employee.id}, {Employee.first_name}, {Employee.middle_name}, {Employee.position}, {Employee.email} FROM {Employee.table_name}"
 
                 Dim reader As MySqlDataReader = Await ReadQueryAsync(sql)
 

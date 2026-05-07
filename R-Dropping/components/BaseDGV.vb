@@ -45,6 +45,8 @@ Public Class BaseDGV
     Private _isPaging As Boolean = False
     Private _isFiltering As Boolean = False
 
+    Public Event AfterPageApplied As EventHandler
+
     ' ── Properties 
     Public ReadOnly Property DataGridView As Guna2DataGridView
         Get
@@ -518,6 +520,8 @@ Public Class BaseDGV
 
         _noResultsLabel.Visible = (totalRows = 0)
         If _noResultsLabel.Visible Then _noResultsLabel.BringToFront()
+
+        RaiseEvent AfterPageApplied(Me, EventArgs.Empty)
     End Sub
 
     '  Public Helpers

@@ -17,6 +17,7 @@ Public Class BuyerPage
         SetupEventHandlers()
         FetchData()
         root.RootInstance.SetRouteLabel(routeName)
+        AddHandler _dgv.AfterPageApplied, Sub(s, e) HandleCol()
     End Sub
 
     Private Sub InitializeComponent()

@@ -7,7 +7,7 @@ Public Class DropOffRoot
 
     Private _panelNavTop As Panel
     Private _dropOffRootPanel As Panel
-    Public Shared _dropOffRootNav As NavigationManager
+
 
     Private _onDeliveryBtn As BaseButton
     Private _completedBtn As BaseButton
@@ -15,8 +15,12 @@ Public Class DropOffRoot
 
     Private _dropOffPage As DropOffPage
 
+    Public Shared DropOffRootInstance As DropOffRoot
+    Public Shared _dropOffRootNav As NavigationManager
+
 
     Public Sub New()
+        DropOffRootInstance = Me
         Me.Dock = DockStyle.Fill
         root.RootInstance.SetRouteLabel(routeName)
         InitializeComponent()
@@ -39,6 +43,7 @@ Public Class DropOffRoot
         End With
 
         _dropOffRootNav = New NavigationManager(_dropOffRootPanel)
+
         _completedBtn = New BaseButton With {
             .Text = "Settled",
             .Height = 38,
@@ -85,17 +90,19 @@ Public Class DropOffRoot
 
         _panelNavTop.Controls.Add(navTable)
 
+
+        Me.Controls.Add(_dropOffRootPanel)
+        Me.Controls.Add(_panelNavTop)
+
         _dropOffRootNav.GoToPage(New DropOffPage())
 
         AddHandler _completedBtn.Click, Sub(sender, e)
-                                            _dropOffRootNav.GoToPage(New DropOffCompleted())
+                                            _dropOffRootNav.GoToPage(New DropOffCompleted(_dropOffRootNav))
                                         End Sub
         AddHandler _pendingBtn.Click, Sub(sender, e)
                                           _dropOffRootNav.GoToPage(New DropOffPage())
                                       End Sub
 
-        Me.Controls.Add(_dropOffRootPanel)
-        Me.Controls.Add(_panelNavTop)
 
     End Sub
 

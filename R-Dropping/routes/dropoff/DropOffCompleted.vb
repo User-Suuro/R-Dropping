@@ -2,49 +2,43 @@
 
 Public Class DropOffCompleted
 
-
     Inherits BasePanel
-    Implements IRefreshable
-
     Private routeName As String = "Drop-off | Settled"
     Private _dgv As BaseDGV
+    Private _initialized As Boolean = False
+    Private _isFetching As Boolean = False
 
-    Public Sub RefreshPage() Implements IRefreshable.Refresh
-        FetchDataForCompleted()
-    End Sub
+    Public Sub New(nav As NavigationManager)
 
-        Public Sub New()
         Me.Dock = DockStyle.Fill
         InitializeComponent()
         SetupEventHandlers()
         FetchDataForCompleted()
         root.RootInstance.SetRouteLabel(routeName)
+        _initialized = True
+        AddHandler _dgv.AfterPageApplied, Sub(s, e) HandleCol()
     End Sub
 
-        Private Sub InitializeComponent()
+    Protected Overrides Sub OnVisibleChanged(e As EventArgs)
+        MyBase.OnVisibleChanged(e)
+        If Me.Visible AndAlso _initialized AndAlso _isFetching Then
+            FetchDataForCompleted()
+        End If
+    End Sub
+
+    Private Sub InitializeComponent()
         _dgv = New BaseDGV()
         InitializeActionBtn()
         Me.Controls.Add(_dgv)
     End Sub
 
 
-    Private _addBtn As BaseButton
     Private _refreshBtn As BaseButton
     Private _pendingBtn As BaseButton
-
-
     Private _deliverItem As BaseButton
 
 
     Private Sub InitializeActionBtn()
-
-        _addBtn = New BaseButton With {
-            .Text = "Add",
-            .Width = 90,
-            .Height = 38,
-            .Margin = New Padding(6, 0, 0, 0)
-        }
-        _addBtn.SetPrimary()
 
         _refreshBtn = New BaseButton With {
             .Text = "Refresh",
@@ -67,7 +61,6 @@ Public Class DropOffCompleted
         _pendingBtn.SetPrimary()
 
 
-        _dgv.AddActionButton(_addBtn, ButtonVisibility.Always)
         _dgv.AddActionButton(_refreshBtn, ButtonVisibility.Always)
 
     End Sub
@@ -93,9 +86,6 @@ Public Class DropOffCompleted
                                             End Sub
 
 
-        AddHandler _addBtn.Click, Sub(sender, e)
-                                      root.rootNav.GoToPage(New DropOffForm())
-                                  End Sub
 
 
         AddHandler _refreshBtn.Click, Sub(sender, e)
@@ -109,48 +99,55 @@ Public Class DropOffCompleted
     End Sub
 
     Private Async Sub FetchDataForCompleted()
-
+        If _isFetching Then Exit Sub
+        _isFetching = True
+        Try
             Dim loadingDlg As New BaseDialog()
 
             Await DialogTypes.ShowLoadingUntilAsync(
-        loadingDlg,
-        Form1.Instance,
-        Async Function()
-            Dim sql As String =
-            $"SELECT 
-                i.{Item.id},
-                i.{Item.name},
-                i.{Item.desc},
-                i.{Item.drop_off_date},
-                i.{Item.pickup_date},
-                CONCAT(b.{Buyer.first_name}, ' ', b.{Buyer.last_name}) AS buyer_name,
-                CONCAT(e.{Employee.first_name}, ' ', e.{Employee.last_name}) AS managed_by,
-                s.{Seller.seller_name} AS seller_name,
-                p.{Pricing.rate_label} AS pricing,
-                st.{Storage.storage_name} AS storage
-            FROM {Item.table_name} i
-            LEFT JOIN {Buyer.table_name} b ON b.{Buyer.id} = i.{Item.buyer_id}
-            LEFT JOIN {Employee.table_name} e ON e.{Employee.id} = i.{Item.managed_by}
-            LEFT JOIN {Seller.table_name} s ON s.{Seller.id} = i.{Item.seller_id}
-            LEFT JOIN {Pricing.table_name} p ON p.{Pricing.id} = i.{Item.pricing_id}
-            LEFT JOIN {Stored.table_name} st_map ON st_map.{Stored.item_id} = i.{Item.id}
-            LEFT JOIN {Storage.table_name} st ON st.{Storage.id} = st_map.{Stored.storage_id}
-            LEFT JOIN {Delivery.table_name} d ON d.{Delivery.item_id} = i.{Item.id}
-            WHERE i.{Item.pickup_date} IS NOT NULL
-              AND (d.{Delivery.item_id} IS NULL OR d.{Delivery.date_delivered} IS NOT NULL)"
-            Dim reader As MySqlDataReader = Await ReadQueryAsync(sql)
+            loadingDlg,
+            Form1.Instance,
+            Async Function()
+                Dim sql As String =
+                $"SELECT 
+                    i.{Item.id},
+                    i.{Item.name},
+                    i.{Item.desc},
+                    i.{Item.drop_off_date},
+                    i.{Item.pickup_date},
+                    CONCAT(b.{Buyer.first_name}, ' ', b.{Buyer.last_name}) AS buyer_name,
+                    CONCAT(e.{Employee.first_name}, ' ', e.{Employee.last_name}) AS managed_by,
+                    s.{Seller.seller_name} AS seller_name,
+                    p.{Pricing.rate_label} AS pricing,
+                    st.{Storage.storage_name} AS storage
+                FROM {Item.table_name} i
+                LEFT JOIN {Buyer.table_name} b ON b.{Buyer.id} = i.{Item.buyer_id}
+                LEFT JOIN {Employee.table_name} e ON e.{Employee.id} = i.{Item.managed_by}
+                LEFT JOIN {Seller.table_name} s ON s.{Seller.id} = i.{Item.seller_id}
+                LEFT JOIN {Pricing.table_name} p ON p.{Pricing.id} = i.{Item.pricing_id}
+                LEFT JOIN {Stored.table_name} st_map ON st_map.{Stored.item_id} = i.{Item.id}
+                LEFT JOIN {Storage.table_name} st ON st.{Storage.id} = st_map.{Stored.storage_id}
+                LEFT JOIN {Delivery.table_name} d ON d.{Delivery.item_id} = i.{Item.id}
+                WHERE i.{Item.pickup_date} IS NOT NULL
+                  AND (d.{Delivery.item_id} IS NULL OR d.{Delivery.date_delivered} IS NOT NULL)"
+                Dim reader As MySqlDataReader = Await ReadQueryAsync(sql)
 
-            If reader IsNot Nothing Then
-                Dim dt As New DataTable()
-                dt.Load(reader)
-                reader.Close()
-                _dgv.BindDataSource(dt)
-            End If
+                If reader IsNot Nothing Then
+                    Dim dt As New DataTable()
+                    dt.Load(reader)
+                    reader.Close()
+                    _dgv.BindDataSource(dt)
+                End If
 
-            HandleCol()
-        End Function
-    )
-        End Sub
+                HandleCol()
+            End Function
+         )
+        Catch ex As Exception
+        Finally
+            _isFetching = False
+        End Try
+
+    End Sub
 
         Private Sub HandleCol()
             Dim hiddenCols = {Item.id}

@@ -24,6 +24,7 @@ Public Class EmployeePage
         InitializeActionBtn()
         Me.Controls.Add(_dgv)
         root.RootInstance.SetRouteLabel(routeName)
+        AddHandler _dgv.AfterPageApplied, Sub(s, e) HandleCol()
     End Sub
 
 

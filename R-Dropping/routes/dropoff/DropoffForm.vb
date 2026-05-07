@@ -32,7 +32,9 @@ Public Class DropOffForm
 
     Private _storedCmb As BaseComboBox
     Private _storedField As ValidationPanel
+
     Private _storedRemainingPlaceholder As BaseInputPanel
+    Private _storedRemainingField
 
     Private _addbutton As BaseButton
     Private _cancelbutton As BaseButton
@@ -235,9 +237,12 @@ Public Class DropOffForm
             .Enabled = False
         }
 
+        _storedRemainingField = New ValidationPanel(_storedRemainingPlaceholder)
+        _storedRemainingField.SetValidator(New InputValidator().Required())
+
         With _storageTable.Controls
             .Add(_storedField, 0, 0)
-            .Add(_storedRemainingPlaceholder, 1, 0)
+            .Add(_storedRemainingField, 1, 0)
         End With
 
         ' button table
@@ -317,6 +322,7 @@ Public Class DropOffForm
         LoadPricingDetails(selectedVal)
     End Sub
 
+
     Private Async Sub StorageChanged(sender As Object, e As EventArgs)
         If String.IsNullOrWhiteSpace(_storedCmb.SelectedValue) Then Exit Sub
 
@@ -324,24 +330,22 @@ Public Class DropOffForm
 
         _storedRemainingPlaceholder.SetValue(remaining.ToString())
 
-
-        Dim validator = New InputValidator().
-        Required().
-        MaxValue(remaining, $"Exceeds available storage ({remaining})")
-
-        _storedField.SetValidator(validator)
     End Sub
 
     Private Async Function GetStorageRemaining(storageId As String) As Task(Of Integer)
 
         Dim sql As String =
         $"SELECT 
-          s.{Storage.capacity_limit} - COUNT(st.{Stored.item_id}) AS remaining
-          FROM {Storage.table_name} s
-          LEFT JOIN {Stored.table_name} st
-          ON st.{Stored.storage_id} = s.{Storage.id}
-          WHERE s.{Storage.id} = @id
-          GROUP BY s.{Storage.id}, s.{Storage.capacity_limit}"
+            s.{Storage.capacity_limit} - COUNT(
+                CASE WHEN i.{Item.pickup_date} IS NULL THEN st.{Stored.item_id} END
+            ) AS remaining
+        FROM {Storage.table_name} s
+        LEFT JOIN {Stored.table_name} st
+            ON st.{Stored.storage_id} = s.{Storage.id}
+        LEFT JOIN {Item.table_name} i
+            ON i.{Item.id} = st.{Stored.item_id}
+        WHERE s.{Storage.id} = @id
+        GROUP BY s.{Storage.id}, s.{Storage.capacity_limit}"
 
         Dim params As New Dictionary(Of String, Object) From {
             {"@id", storageId}
@@ -349,17 +353,14 @@ Public Class DropOffForm
 
         Try
             Using reader = Await ReadQueryAsync(sql, params)
-
                 If reader Is Nothing Then Return 0
 
                 If Await reader.ReadAsync() Then
                     Dim value = reader("remaining")
-
                     If value IsNot DBNull.Value Then
                         Return Math.Max(0, Convert.ToInt32(value))
                     End If
                 End If
-
             End Using
 
         Catch ex As Exception
@@ -391,13 +392,13 @@ Public Class DropOffForm
     End Sub
 
     Private Function validateallinputs() As Boolean
-        Return {_managedField, _sellerField, _buyerField, _pricingField, _itemNameField, _itemDescField, _imageField, _storedField}.All(Function(f) f.ValidateInput())
+        Return {_managedField, _sellerField, _buyerField, _pricingField, _itemNameField, _itemDescField, _imageField, _storedField, _storedRemainingField}.All(Function(f) f.ValidateInput())
     End Function
 
     Private Async Sub loadasync()
         Await loadDataForInput()
         If _id.HasValue() Then
-            ' Await fetchdataforeditmode(_id.Value)
+            Await fetchDataForEditMode(_id.Value)
         End If
     End Sub
 
@@ -414,7 +415,11 @@ Public Class DropOffForm
                     Await LoadSellers()
                     Await LoadBuyers()
                     Await LoadPricing()
-                    Await LoadStorage()
+                    If _id.HasValue Then
+                        Await LoadStorage(_id.Value)
+                    Else
+                        Await LoadStorage()
+                    End If
                 End Function
             )
         Catch ex As Exception
@@ -422,7 +427,6 @@ Public Class DropOffForm
         End Try
 
     End Function
-
 
     Private Async Function LoadManagers() As Task
         Dim list As New List(Of ComboItem)
@@ -509,13 +513,28 @@ Public Class DropOffForm
         _buyerCmb.ComboItems = list
     End Function
 
-
-    Private Async Function LoadStorage() As Task
+    Private Async Function LoadStorage(Optional excludeItemId As Integer? = Nothing) As Task
         Dim list As New List(Of ComboItem)
 
+        Dim excludeClause As String = If(
+        excludeItemId.HasValue,
+        $"AND i.{Item.id} <> {excludeItemId.Value}",
+            ""
+        )
+
         Dim sql As String =
-        $"SELECT {Storage.id}, {Storage.storage_name}
-          FROM {Storage.table_name}"
+        $"SELECT 
+            s.{Storage.id}, 
+            s.{Storage.storage_name}
+        FROM {Storage.table_name} s
+        LEFT JOIN {Stored.table_name} st
+            ON st.{Stored.storage_id} = s.{Storage.id}
+        LEFT JOIN {Item.table_name} i
+            ON i.{Item.id} = st.{Stored.item_id}
+            AND i.{Item.pickup_date} IS NULL
+            {excludeClause}
+        GROUP BY s.{Storage.id}, s.{Storage.storage_name}, s.{Storage.capacity_limit}
+        HAVING s.{Storage.capacity_limit} - COUNT(i.{Item.id}) > 0"
 
         Using reader = Await ReadQueryAsync(sql)
             If reader IsNot Nothing Then
@@ -562,7 +581,7 @@ Public Class DropOffForm
                     Dim queryresult As Boolean
 
                     If _id.HasValue() Then
-                        ' queryresult = await editquery()
+                        queryresult = Await editQuery()
                     Else
                         queryresult = Await addQuery()
                     End If
@@ -572,8 +591,8 @@ Public Class DropOffForm
 
                         DialogTypes.Apply(info_dlg,
                           DialogType.Info,
-                          "success",
-                          "changes was saved successfully")
+                          "Success",
+                          "Changes was saved successfully")
 
                         Dim result_info_dlg = Await info_dlg.ShowBaseDialogAsync(Form1.Instance)
 
@@ -593,8 +612,6 @@ Public Class DropOffForm
 
                 End Function
             )
-        Else
-            confirm_dlg.Hide()
         End If
 
     End Sub
@@ -654,65 +671,119 @@ Public Class DropOffForm
 
 
 
-    'private async function fetchdataforeditmode(id as integer) as task
-    '    _addbutton.text = "save"
-
-    '    dim sql as string =
-    '   $"select {courier.first_name}, {courier.last_name}, {courier.vehicle_type}, {courier.vehicle_brand}, {courier.plate_no} " &
-    '   $"from {courier.table_name} " &
-    '   $"where {courier.id} = @{courier.id}"
-
-    '    dim params as new dictionary(of string, object) from {
-    '    {$"@{courier.id}", id}
-    '}
-
-    '    dim reader as mysqldatareader = await readqueryasync(sql, params)
-
-    '    if reader isnot nothing then
-    '        while await reader.readasync()
-    '            dim firstname as string = reader(courier.first_name).tostring()
-    '            dim lastname as string = reader(courier.last_name).tostring()
-    '            dim vehicle_type as string = reader(courier.vehicle_type).tostring()
-    '            dim vehicle_brand as string = reader(courier.vehicle_brand).tostring()
-    '            dim plate_no as string = reader(courier.plate_no).tostring()
-
-    '            _firstnameinput.setvalue(firstname)
-    '            _lastnameinput.setvalue(lastname)
-    '            _vehicletypeinput.setvalue(vehicle_type)
-    '            _vehiclebrandinput.setvalue(vehicle_brand)
-    '            _platenoinput.setvalue(plate_no)
-    '        end while
-
-    '        reader.close()
-    '    end if
-    'end function
-
-    'private async function editquery() as task(of boolean)
-    '    dim sql as string =
-    '   $"update {courier.table_name} set " &
-    '   $"{courier.first_name} = @{courier.first_name}, " &
-    '   $"{courier.last_name} = @{courier.last_name}, " &
-    '   $"{courier.vehicle_type} = @{courier.vehicle_type}, " &
-    '   $"{courier.vehicle_brand} = @{courier.vehicle_brand}, " &
-    '   $"{courier.plate_no} = @{courier.plate_no} " &
-    '   $"where {courier.id} = @{courier.id}"
+    Private Async Function fetchdataforeditmode(id As Integer) As Task
+        _addbutton.Text = "Save"
 
 
-    '    dim params as new dictionary(of string, object) from {
-    '    {$"@{courier.first_name}", _firstnameinput.value},
-    '    {$"@{courier.last_name}", _lastnameinput.value},
-    '    {$"@{courier.vehicle_type}", _vehicletypeinput.selectedvalue},
-    '    {$"@{courier.vehicle_brand}", _vehiclebrandinput.getvalue()},
-    '    {$"@{courier.plate_no}", _platenoinput.value},
-    '    {$"@{courier.id}", _id}
-    '    }
+        RemoveHandler _storedCmb.SelectedValueChanged, AddressOf StorageChanged
+        RemoveHandler _pricingCmb.SelectedValueChanged, AddressOf PricingChanged
 
-    '    dim affectedrows as integer = await executequeryasync(sql, params)
-    '    if affectedrows > 0 then
-    '        return true
-    '    end if
-    '    return false
-    'end function
+        Dim sql As String =
+        $"SELECT 
+            i.{Item.managed_by},
+            i.{Item.pricing_id},
+            i.{Item.buyer_id},
+            i.{Item.seller_id},
+            i.{Item.name},
+            i.{Item.desc},
+            i.{Item.img_path},
+            st.{Stored.storage_id},
+            p.{Pricing.base_fee},
+            p.{Pricing.daily_increment_fee}
+        FROM {Item.table_name} i
+        LEFT JOIN {Stored.table_name} st
+            ON st.{Stored.item_id} = i.{Item.id}
+        LEFT JOIN {Pricing.table_name} p
+            ON p.{Pricing.id} = i.{Item.pricing_id}
+        WHERE i.{Item.id} = @id"
+
+        Dim params As New Dictionary(Of String, Object) From {
+            {"@id", id}
+        }
+
+        Try
+            Using reader = Await ReadQueryAsync(sql, params)
+                If reader IsNot Nothing AndAlso Await reader.ReadAsync() Then
+                    _managedCmb.SetValue(reader(Item.managed_by).ToString())
+                    _sellerCmb.SetValue(reader(Item.seller_id).ToString())
+                    _buyerCmb.SetValue(reader(Item.buyer_id).ToString())
+
+                    _pricingCmb.SetValue(reader(Item.pricing_id).ToString())
+                    _pricingCmb.Enabled = False
+
+                    _itemNameInp.SetValue(reader(Item.name).ToString())
+                    _itemDescInp.SetValue(If(IsDBNull(reader(Item.desc)), "", reader(Item.desc)))
+
+                    _pricingCmb.SetValue(reader(Item.pricing_id).ToString())
+                    _pricingCmb.Enabled = False
+                    _basePricingPlacholder.SetValue(reader(Pricing.base_fee).ToString())
+                    _dailyPricingPlaholder.SetValue(reader(Pricing.daily_increment_fee).ToString())
+
+                    Dim imgPath = reader(Item.img_path)
+                    If imgPath IsNot DBNull.Value Then
+                        _imagePanel.LoadImage(imgPath.ToString())
+                    End If
+
+                    Dim storageId = reader(Stored.storage_id)
+                    If storageId IsNot DBNull.Value Then
+                        _storedCmb.SetValue(storageId.ToString())
+                    End If
+                End If
+            End Using
+        Catch ex As Exception
+            MessageBox.Show(ex.Message)
+        Finally
+
+            AddHandler _storedCmb.SelectedValueChanged, AddressOf StorageChanged
+            AddHandler _pricingCmb.SelectedValueChanged, AddressOf PricingChanged
+        End Try
+
+        StorageChanged(Nothing, EventArgs.Empty)
+    End Function
+    Private Async Function editQuery() As Task(Of Boolean)
+        Dim sql As String =
+        $"UPDATE {Item.table_name} SET
+            {Item.managed_by} = @managed_by,
+            {Item.seller_id}  = @seller_id,
+            {Item.buyer_id}   = @buyer_id,
+            {Item.name}       = @item_name,
+            {Item.desc}       = @description,
+            {Item.img_path}   = @img_path
+        WHERE {Item.id} = @id"
+
+        Dim params As New Dictionary(Of String, Object) From {
+            {"@managed_by", _managedCmb.SelectedValue},
+            {"@seller_id", _sellerCmb.SelectedValue},
+            {"@buyer_id", _buyerCmb.SelectedValue},
+            {"@item_name", _itemNameInp.Value},
+            {"@description", ToDbNull(_itemDescInp.Value)},
+            {"@img_path", _imagePanel.SaveImage()},
+            {"@id", _id.Value}
+        }
+
+        Try
+            Dim affectedRows As Integer = Await ExecuteQueryAsync(sql, params)
+
+            If affectedRows <= 0 Then Return False
+
+            Dim storedSql As String =
+            $"UPDATE {Stored.table_name} SET
+            {Stored.storage_id} = @storage_id
+            WHERE {Stored.item_id} = @item_id"
+
+            Dim storedParams As New Dictionary(Of String, Object) From {
+                {"@storage_id", _storedCmb.SelectedValue},
+                {"@item_id", _id.Value}
+            }
+
+            Dim storedRows As Integer = Await ExecuteQueryAsync(storedSql, storedParams)
+            Return storedRows > 0
+
+        Catch ex As Exception
+            MessageBox.Show(ex.Message)
+            Return False
+        End Try
+    End Function
 
 
     Private Sub canceladd()

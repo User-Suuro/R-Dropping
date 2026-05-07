@@ -199,8 +199,7 @@ Public Class PricingForm
 
                 End Function
             )
-        Else
-            confirm_dlg.Hide()
+
         End If
 
     End Sub

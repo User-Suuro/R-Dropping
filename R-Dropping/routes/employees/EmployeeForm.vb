@@ -220,7 +220,6 @@ Public Class EmployeeForm
                 End Function
             )
         Else
-            confirm_dlg.Hide()
         End If
 
     End Sub

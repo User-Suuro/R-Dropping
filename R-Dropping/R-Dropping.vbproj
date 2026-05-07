@@ -186,7 +186,20 @@
     <Compile Include="routes\courier\CourierPage.vb">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="routes\dropoff\DropoffForm.vb">
+    <Compile Include="routes\dashboard\DashboardPage.vb" />
+    <Compile Include="routes\dropoff\DropOffClaimForm.vb">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="routes\dropoff\DropOffForm.vb">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="routes\dropoff\DropOffPage.vb">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="routes\dropoff\DropOffRoot.vb">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="routes\dropoff\DropOffCompleted.vb">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="routes\employees\EmployeeForm.vb">
@@ -287,8 +300,6 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="routes\dashboard\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>

@@ -195,8 +195,7 @@ Public Class BuyerForm
                     
                 End Function
             )
-        Else
-            confirm_dlg.Hide()
+
         End If
 
     End Sub

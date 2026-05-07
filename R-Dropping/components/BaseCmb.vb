@@ -40,6 +40,8 @@ Public Class BaseComboBox
     Private _dropdown As ComboDropdownPanel
     Private _label As BaseLabel
     Private _cmbName As String
+    Private _clearBtn As Guna2Button
+    Private _clearable As Boolean = False
 
     Public WriteOnly Property Items As List(Of String)
         Set(value As List(Of String))
@@ -81,6 +83,43 @@ Public Class BaseComboBox
         _btn.BorderColor = Color.FromArgb(220, 220, 220)
     End Sub
 
+    Public Sub SetClearable()
+        If _clearable Then Return
+        _clearable = True
+
+        _clearBtn = New Guna2Button With {
+        .Size = New Size(22, 22),
+        .Text = "✕",
+        .FillColor = Color.Transparent,
+        .ForeColor = Color.FromArgb(160, 160, 160),
+        .BorderThickness = 0,
+        .Font = New Font("Segoe UI", 7.5F),
+        .Cursor = Cursors.Hand,
+        .Visible = False
+    }
+
+        _clearBtn.HoverState.FillColor = Color.FromArgb(235, 235, 235)
+        _clearBtn.HoverState.ForeColor = Color.FromArgb(60, 60, 60)
+
+        AddHandler _clearBtn.Click, Sub(s, e) ClearSelection()
+
+        Me.Controls.Add(_clearBtn)
+        _clearBtn.BringToFront()
+
+        PositionClearButton()
+
+        AddHandler Me.Resize, Sub(s, e) PositionClearButton()
+        AddHandler _btn.SizeChanged, Sub(s, e) PositionClearButton()
+    End Sub
+
+    Private Sub PositionClearButton()
+        If _clearBtn Is Nothing Then Return
+        _clearBtn.Left = Me.Width - _clearBtn.Width - 4
+        _clearBtn.Top = _btn.Top + (_btn.Height - _clearBtn.Height) \ 2
+    End Sub
+
+
+
     Public Sub New(cmbName As String)
         Me.AutoSize = True
         Me.AutoSizeMode = AutoSizeMode.GrowAndShrink
@@ -116,9 +155,11 @@ Public Class BaseComboBox
     Private Sub UpdateButtonAppearance()
         Dim hasValue = Not String.IsNullOrWhiteSpace(_selectedId)
         _btn.Text = If(hasValue, "  " & _selectedDisplay, Placeholder)
-        _btn.ForeColor = If(hasValue,
-                            Color.FromArgb(20, 20, 20),
-                            Color.FromArgb(150, 150, 150))
+        _btn.ForeColor = If(hasValue, Color.FromArgb(20, 20, 20), Color.FromArgb(150, 150, 150))
+
+        If _clearable AndAlso _clearBtn IsNot Nothing Then
+            _clearBtn.Visible = hasValue
+        End If
     End Sub
 
     Private Sub _btn_Click(sender As Object, e As EventArgs) Handles _btn.Click

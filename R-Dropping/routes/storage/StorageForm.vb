@@ -176,8 +176,7 @@ Public Class StorageForm
 
                 End Function
             )
-        Else
-            confirm_dlg.Hide()
+
         End If
 
     End Sub

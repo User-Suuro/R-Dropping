@@ -197,8 +197,7 @@ Public Class SellerForm
 
                 End Function
             )
-        Else
-            confirm_dlg.Hide()
+
         End If
 
     End Sub
@@ -215,7 +214,7 @@ Public Class SellerForm
 
         Dim params As New Dictionary(Of String, Object) From {
         {$"@{Seller.seller_name}", _sellerNameInput.Value},
-        {$"@{Seller.email}", _sellerEmailInput.Value.Trim())},
+        {$"@{Seller.email}", ToDbNull(_sellerEmailInput.Value.Trim())},
         {$"@{Seller.contact_no}", ToDbNull(_contactNoInput.Value.Trim())},
         {$"@{Seller.platform}", _platformInput.SelectedValue}
         }

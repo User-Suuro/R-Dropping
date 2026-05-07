@@ -221,6 +221,17 @@ Public Class InputValidator
         Return Me
     End Function
 
+    Public Function MinValue(min As Double, Optional message As String = Nothing) As InputValidator
+        _rules.Add(Function(v)
+                       Dim n As Double
+                       If Not Double.TryParse(v, n) Then Return New ValidationResult(False, "Must be a valid number")
+                       Return If(n < min,
+                             New ValidationResult(False, If(message, $"Minimum value is {min}")),
+                             ValidationResult.Ok)
+                   End Function)
+        Return Me
+    End Function
+
     Public Function MaxValue(max As Double) As InputValidator
         _rules.Add(Function(v)
                        Dim n As Double

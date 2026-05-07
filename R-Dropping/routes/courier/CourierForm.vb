@@ -211,10 +211,8 @@ Public Class CourierForm
 
                 End Function
             )
-        Else
-            confirm_dlg.Hide()
-        End If
 
+        End If
     End Sub
 
 

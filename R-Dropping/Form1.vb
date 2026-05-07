@@ -201,7 +201,7 @@
                         DialogTypes.Apply(dlg,
                           DialogType.Error,
                           "Failed to Connect",
-                          "Please Try Again with Correct Values")
+                          "Database not be found")
 
                         dlg.ShowBaseDialog(Me)
                     End If

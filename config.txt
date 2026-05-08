@@ -1,7 +1,0 @@
-# ENV for localhost
-
-DB_SERVER=127.0.0.1
-DB_UID=root
-DB_PORT=3306
-DB_NAME=r-dropping
-DB_PWD=

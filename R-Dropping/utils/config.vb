@@ -3,7 +3,7 @@
 Public Class Config
 
     Private Shared ReadOnly FilePath As String =
-        Path.Combine(GetSolutionPath(), "config.txt")
+        Path.Combine(FindSolutionRoot(), "config.txt")
 
     ' LOAD 
     Public Shared Function Load(Of T As New)() As T
@@ -147,36 +147,21 @@ Public Class Config
     Public Shared Function FindSolutionRoot(
     Optional folder As String = Nothing,
     Optional subFolder As String = Nothing
-) As String
+    ) As String
 
-        Dim current As New DirectoryInfo(Application.StartupPath)
+        Dim rootPath As String = Application.StartupPath
 
-        Do While current IsNot Nothing
+        If Not String.IsNullOrWhiteSpace(folder) Then
+            rootPath = Path.Combine(rootPath, folder)
+        End If
 
-            If current.GetFiles("*.sln").Length > 0 Then
+        If Not String.IsNullOrWhiteSpace(subFolder) Then
+            rootPath = Path.Combine(rootPath, subFolder)
+        End If
 
-                Dim rootPath As String = current.FullName
+        Directory.CreateDirectory(rootPath)
 
-                If Not String.IsNullOrWhiteSpace(folder) Then
-                    rootPath = Path.Combine(rootPath, folder)
-                End If
-
-                If Not String.IsNullOrWhiteSpace(subFolder) Then
-                    rootPath = Path.Combine(rootPath, subFolder)
-                End If
-
-                Directory.CreateDirectory(rootPath)
-
-                Return rootPath
-
-            End If
-
-            current = current.Parent
-
-        Loop
-
-        Return Nothing
-
+        Return rootPath
     End Function
 
     Public Shared Function BuildRelativePath(

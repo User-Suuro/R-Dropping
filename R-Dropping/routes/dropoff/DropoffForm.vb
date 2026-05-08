@@ -308,7 +308,7 @@ Public Class DropOffForm
 
         Me.Controls.Add(_tableFormat)
 
-        ' bind events
+
 
         AddHandler _addbutton.Click, AddressOf QueryBuyer
         AddHandler _cancelbutton.Click, AddressOf canceladd
@@ -317,9 +317,6 @@ Public Class DropOffForm
         AddHandler _storedCmb.SelectedValueChanged, AddressOf StorageChanged
     End Sub
 
-    ''' <summary>
-    ''' Restricts the price input to digits and a single decimal point only.
-    ''' </summary>
     Private Sub AllowNumericOnly(sender As Object, e As KeyPressEventArgs)
         Dim inp = DirectCast(sender, TextBox)
         Dim isDigit = Char.IsDigit(e.KeyChar)

@@ -244,11 +244,12 @@ Public Class ComboDropdownPanel
 
     Private Const ITEM_H As Integer = 32
     Private Const ITEM_GAP As Integer = 4
-    Private Const MAX_VISIBLE As Integer = 6
     Private Const PANEL_PAD_V As Integer = 20
     Private Const SEARCH_H As Integer = 24
     Private Const SEARCH_GAP As Integer = 12
     Private Const EMPTY_H As Integer = 64
+    Private Const PAGINATION_PANEL_HEIGHT As Integer = 38
+    Private _minWidth As Integer = 300
 
     Private Const WM_LBUTTONDOWN As Integer = &H201
     Private Const WM_RBUTTONDOWN As Integer = &H204
@@ -259,9 +260,69 @@ Public Class ComboDropdownPanel
     Private ReadOnly _disableSearch As Boolean
     Private _isClosing As Boolean = False
 
+    Private _filteredItems As List(Of ComboItem)
+    Private _currentPage As Integer = 1
+    Private _pageSize As Integer = 10
+
     Private WithEvents _search As New Guna2TextBox
     Private _list As New FlowLayoutPanel
     Private _empty As New Label
+
+    ' Pagination controls  (initialised in BuildPaginationPanel, but guarded against Nothing)
+    Private _paginationPanel As Panel
+    Private _pageInfoLabel As Label
+    Private _firstPageBtn As Guna2Button
+    Private _prevPageBtn As Guna2Button
+    Private _nextPageBtn As Guna2Button
+    Private _lastPageBtn As Guna2Button
+
+    Public Property MinWidth As Integer
+        Get
+            Return _minWidth
+        End Get
+        Set(value As Integer)
+            If value < 1 Then value = 1
+            _minWidth = value
+
+            Me.Width = Math.Max(Me.Width, _minWidth)
+        End Set
+    End Property
+
+
+    Public Shadows Property Width As Integer
+        Get
+            Return MyBase.Width
+        End Get
+        Set(value As Integer)
+            MyBase.Width = Math.Max(value, _minWidth)
+        End Set
+    End Property
+
+    Protected Overrides Sub SetBoundsCore(x As Integer, y As Integer, width As Integer, height As Integer, specified As BoundsSpecified)
+        width = Math.Max(width, _minWidth)
+        MyBase.SetBoundsCore(x, y, width, height, specified)
+    End Sub
+
+    Public Property PageSize As Integer
+        Get
+            Return _pageSize
+        End Get
+        Set(value As Integer)
+            If value < 1 Then value = 1
+            _pageSize = value
+            If _filteredItems IsNot Nothing Then
+                _currentPage = Math.Min(_currentPage, TotalPages)
+                PopulateCurrentPage()
+            End If
+        End Set
+    End Property
+
+    Private ReadOnly Property TotalPages As Integer
+        Get
+            If _filteredItems Is Nothing OrElse _filteredItems.Count = 0 Then Return 1
+            Return CInt(Math.Ceiling(_filteredItems.Count / CDbl(_pageSize)))
+        End Get
+    End Property
 
     Public Sub New(items As List(Of ComboItem), currentId As String,
                    Optional disableSearch As Boolean = False)
@@ -279,7 +340,6 @@ Public Class ComboDropdownPanel
         BuildUI()
     End Sub
 
-    ' ── IMessageFilter ───────────────────────────────────────
     Public Function PreFilterMessage(ByRef m As Message) As Boolean _
         Implements IMessageFilter.PreFilterMessage
 
@@ -291,10 +351,8 @@ Public Class ComboDropdownPanel
                 CloseDropdown()
             End If
         End If
-
         Return False
     End Function
-
 
     Private ReadOnly Property SearchBlockH As Integer
         Get
@@ -302,19 +360,17 @@ Public Class ComboDropdownPanel
         End Get
     End Property
 
-
-    Private Function CalcPanelHeight(visibleCount As Integer) As Integer
-        Dim listH = visibleCount * (ITEM_H + ITEM_GAP) - ITEM_GAP
-        Return PANEL_PAD_V + SearchBlockH + listH
-    End Function
-
-
-    Private ReadOnly Property ListH As Integer
+    Private ReadOnly Property PaginationBlockH As Integer
         Get
-            Return Me.Height - PANEL_PAD_V - SearchBlockH
+            If _paginationPanel IsNot Nothing AndAlso
+               _filteredItems IsNot Nothing AndAlso _filteredItems.Count > _pageSize Then
+                Return PAGINATION_PANEL_HEIGHT
+            End If
+            Return 0
         End Get
     End Property
 
+    ' ── UI construction ─────────────────────────────────────
     Private Sub BuildUI()
         Dim flow As New FlowLayoutPanel With {
             .Dock = DockStyle.Fill,
@@ -322,7 +378,7 @@ Public Class ComboDropdownPanel
             .WrapContents = False,
             .AutoScroll = False,
             .Padding = New Padding(0),
-              .BackColor = Color.White
+            .BackColor = Color.White
         }
 
         If Not _disableSearch Then
@@ -345,9 +401,14 @@ Public Class ComboDropdownPanel
             .Width = Me.Width,
             .FlowDirection = FlowDirection.TopDown,
             .WrapContents = False,
-            .AutoScroll = True,
+            .AutoScroll = False,
             .Margin = New Padding(0)
         }
+        flow.Controls.Add(_list)
+
+        ' Build pagination bar (may become Nothing if an exception occurs – guarded later)
+        BuildPaginationPanel()
+        flow.Controls.Add(_paginationPanel)
 
         _empty = New Label With {
             .Text = "No results found.",
@@ -359,15 +420,86 @@ Public Class ComboDropdownPanel
             .Height = EMPTY_H,
             .Visible = False
         }
-
-        flow.Controls.Add(_list)
         flow.Controls.Add(_empty)
+
         Controls.Add(flow)
     End Sub
 
+    Private Sub BuildPaginationPanel()
+
+        If _paginationPanel IsNot Nothing Then Return
+
+        _paginationPanel = New Panel With {
+        .Height = PAGINATION_PANEL_HEIGHT,
+        .Width = Me.Width - Me.Padding.Horizontal,   ' use client width
+        .BackColor = Color.White,
+        .Visible = False,
+        .Margin = New Padding(0, 4, 0, 0)           ' no right margin
+    }
+
+        _pageInfoLabel = New Label With {
+        .Text = "Page 1 of 1  (0 items)",
+        .Font = New Font("Segoe UI", 8.5F),
+        .ForeColor = Color.FromArgb(100, 100, 100),
+        .TextAlign = ContentAlignment.MiddleCenter,
+        .Dock = DockStyle.Fill
+    }
+
+        _firstPageBtn = CreateNavButton("«")
+        _prevPageBtn = CreateNavButton("‹")
+        _nextPageBtn = CreateNavButton("›")
+        _lastPageBtn = CreateNavButton("»")
+
+        AddHandler _firstPageBtn.Click, Sub(s, e) GoToPage(1)
+        AddHandler _prevPageBtn.Click, Sub(s, e) GoToPage(_currentPage - 1)
+        AddHandler _nextPageBtn.Click, Sub(s, e) GoToPage(_currentPage + 1)
+        AddHandler _lastPageBtn.Click, Sub(s, e) GoToPage(TotalPages)
+
+        Dim table As New TableLayoutPanel With {
+        .Dock = DockStyle.Fill,
+        .ColumnCount = 5,
+        .RowCount = 1,
+        .BackColor = Color.White,
+        .Margin = New Padding(0)
+    }
+
+        table.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 28))
+        table.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 28))
+        table.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100))
+        table.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 28))
+        table.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 28))
+        table.RowStyles.Add(New RowStyle(SizeType.Absolute, 28))
+
+        table.Controls.Add(_firstPageBtn, 0, 0)
+        table.Controls.Add(_prevPageBtn, 1, 0)
+        table.Controls.Add(_pageInfoLabel, 2, 0)
+        table.Controls.Add(_nextPageBtn, 3, 0)
+        table.Controls.Add(_lastPageBtn, 4, 0)          ' ← ADDED
+
+        _paginationPanel.Controls.Add(table)
+    End Sub
+
+    Private Function CreateNavButton(text As String) As Guna2Button
+        Return New Guna2Button With {
+            .Text = text,
+            .Width = 24,
+            .Height = 24,
+            .FillColor = Color.White,
+            .ForeColor = Color.FromArgb(80, 80, 80),
+            .BorderThickness = 0,
+            .Font = New Font("Segoe UI", 9.5F, FontStyle.Bold),
+            .TextAlign = HorizontalAlignment.Center,
+            .Cursor = Cursors.Hand,
+            .Margin = New Padding(2)
+        }
+    End Function
+
+    ' ── Public entry points ─────────────────────────────────
     Public Sub OpenDropdown()
         Me.Visible = True
-        Populate(_allItems)
+        _filteredItems = New List(Of ComboItem)(_allItems)
+        _currentPage = 1
+        PopulateCurrentPage()
         If Not _disableSearch Then _search.Focus()
         Application.AddMessageFilter(Me)
     End Sub
@@ -375,29 +507,56 @@ Public Class ComboDropdownPanel
     Public Sub CloseDropdown()
         If _isClosing Then Return
         _isClosing = True
-
         Application.RemoveMessageFilter(Me)
-
         If Me.Parent IsNot Nothing Then
             Me.Parent.Controls.Remove(Me)
         End If
-
         RaiseEvent DropdownClosed()
         Me.Dispose()
     End Sub
 
-    Private Sub Populate(items As List(Of ComboItem))
+    Public Sub Filter(query As String, Optional currentId As String = Nothing)
+        If currentId IsNot Nothing Then _currentId = currentId
+        FilterItems(query)
+        _currentPage = 1
+        PopulateCurrentPage()
+    End Sub
+
+    Private Sub FilterItems(query As String)
+        If String.IsNullOrWhiteSpace(query) Then
+            _filteredItems = New List(Of ComboItem)(_allItems)
+        Else
+            Dim q = query.ToLower()
+            _filteredItems = _allItems.
+                Where(Function(x) x.Display.ToLower().Contains(q)).
+                ToList()
+        End If
+    End Sub
+
+    ' ── Pagination logic ────────────────────────────────────
+    Private Sub GoToPage(page As Integer)
+        Dim total = TotalPages
+        Dim newPage = Math.Max(1, Math.Min(page, total))
+        If newPage = _currentPage Then Return
+        _currentPage = newPage
+        PopulateCurrentPage()
+    End Sub
+
+    Private Sub PopulateCurrentPage()
+        If _filteredItems Is Nothing Then Return
+
         _list.SuspendLayout()
         _list.Controls.Clear()
 
-        If items Is Nothing OrElse items.Count = 0 Then
-            _list.Visible = False
-            _empty.Visible = True
+        Dim totalItems = _filteredItems.Count
+        Dim totalPageCount As Integer = TotalPages
 
-            ' Adjust height for empty state
+        If totalItems = 0 Then
+            _list.Visible = False
+            If _paginationPanel IsNot Nothing Then _paginationPanel.Visible = False
+            _empty.Visible = True
             Me.Height = PANEL_PAD_V + SearchBlockH + EMPTY_H
             ResizeLayout()
-
             _list.ResumeLayout()
             Return
         End If
@@ -405,75 +564,105 @@ Public Class ComboDropdownPanel
         _empty.Visible = False
         _list.Visible = True
 
-        For Each item In items
-            Dim isSelected = (item.Id = _currentId)
+        ' If pagination panel is missing (should never happen), fall back to showing all items
+        Dim showPagination As Boolean = False
+        If _paginationPanel IsNot Nothing AndAlso totalItems > _pageSize Then
+            showPagination = True
+        End If
 
+        Dim startIdx As Integer, count As Integer
+        If showPagination Then
+            startIdx = (_currentPage - 1) * _pageSize
+            count = Math.Min(_pageSize, totalItems - startIdx)
+        Else
+            startIdx = 0
+            count = totalItems
+        End If
+
+        Dim pageItems = _filteredItems.GetRange(startIdx, count)
+
+        For Each item In pageItems
+            Dim isSelected = (item.Id = _currentId)
             Dim btn As New Guna2Button With {
-            .Text = If(isSelected, "  ✓  " & item.Display, "     " & item.Display),
-            .Height = ITEM_H,
-            .Width = Me.Width,
-            .FillColor = If(isSelected, Color.FromArgb(238, 242, 255), Color.White),
-            .ForeColor = If(isSelected, Color.FromArgb(79, 70, 229), Color.FromArgb(30, 41, 59)),
-            .BorderThickness = 0,
-            .Font = New Font("Segoe UI", 9.5F,
-                             If(isSelected, FontStyle.Bold, FontStyle.Regular)),
-            .TextAlign = HorizontalAlignment.Left,
-            .Cursor = Cursors.Hand,
-            .Tag = item,
-            .Margin = New Padding(0, 0, 0, ITEM_GAP)
-        }
+                .Text = If(isSelected, "  ✓  " & item.Display, "     " & item.Display),
+                .Height = ITEM_H,
+                .Width = Me.Width,
+                .FillColor = If(isSelected, Color.FromArgb(238, 242, 255), Color.White),
+                .ForeColor = If(isSelected, Color.FromArgb(79, 70, 229), Color.FromArgb(30, 41, 59)),
+                .BorderThickness = 0,
+                .Font = New Font("Segoe UI", 9.5F,
+                                 If(isSelected, FontStyle.Bold, FontStyle.Regular)),
+                .TextAlign = HorizontalAlignment.Left,
+                .Cursor = Cursors.Hand,
+                .Tag = item,
+                .Margin = New Padding(0, 0, 0, ITEM_GAP)
+            }
 
             btn.HoverState.FillColor = Color.FromArgb(238, 242, 255)
             btn.HoverState.ForeColor = Color.FromArgb(79, 70, 229)
 
             AddHandler btn.Click,
-            Sub(sender As Object, e As EventArgs)
-                Dim selected = DirectCast(btn.Tag, ComboItem)
-                RaiseEvent ItemSelected(selected.Id)
-                CloseDropdown()
-            End Sub
+                Sub(sender As Object, e As EventArgs)
+                    Dim selected = DirectCast(btn.Tag, ComboItem)
+                    RaiseEvent ItemSelected(selected.Id)
+                    CloseDropdown()
+                End Sub
 
             _list.Controls.Add(btn)
         Next
 
-        _list.ResumeLayout()
+        Dim listHeight = count * (ITEM_H + ITEM_GAP) - ITEM_GAP
+        _list.Height = listHeight
 
-        AdjustHeight()
+        If showPagination Then
+            _paginationPanel.Visible = True
+            _pageInfoLabel.Text = String.Format("Page {0} of {1}  ({2} items)", _currentPage, totalPageCount, totalItems)
+            _firstPageBtn.Enabled = _currentPage > 1
+            _prevPageBtn.Enabled = _currentPage > 1
+            _nextPageBtn.Enabled = _currentPage < totalPageCount
+            _lastPageBtn.Enabled = _currentPage < totalPageCount
+        Else
+            If _paginationPanel IsNot Nothing Then _paginationPanel.Visible = False
+        End If
+
+        _list.ResumeLayout()
+        Me.Height = CalculateDropdownHeight(listHeight, showPagination)
         ResizeLayout()
     End Sub
 
+    Private Function CalculateDropdownHeight(listHeight As Integer, paginationVisible As Boolean) As Integer
+        Dim h = PANEL_PAD_V + SearchBlockH + listHeight
+        If paginationVisible Then h += PAGINATION_PANEL_HEIGHT
+        Return Math.Max(h, 80)
+    End Function
 
     Private Sub ResizeLayout()
         Dim innerWidth = Me.Width
         _search.Width = innerWidth
         _list.Width = innerWidth
-        _list.Height = ListH
         For Each ctrl As Control In _list.Controls
             ctrl.Width = innerWidth
         Next
+
+
+        Dim clientW = innerWidth - Me.Padding.Horizontal
+        If _paginationPanel IsNot Nothing Then
+            _paginationPanel.Width = clientW
+        End If
+
         _empty.Width = innerWidth
         _empty.Height = EMPTY_H
     End Sub
 
     Private Sub _search_TextChanged(sender As Object, e As EventArgs) Handles _search.TextChanged
-        Dim query = _search.Text.Trim().ToLower()
-        Dim filtered = If(String.IsNullOrWhiteSpace(query),
-                          _allItems,
-                          _allItems.Where(Function(x) x.Display.ToLower().Contains(query)).ToList())
-        Populate(filtered)
+        FilterItems(_search.Text)
+        _currentPage = 1
+        PopulateCurrentPage()
     End Sub
 
     Protected Overrides Sub OnResize(e As EventArgs)
         MyBase.OnResize(e)
         ResizeLayout()
-    End Sub
-
-    Public Sub Filter(query As String, Optional currentId As String = Nothing)
-        If currentId IsNot Nothing Then _currentId = currentId
-        Dim filtered = If(String.IsNullOrWhiteSpace(query),
-                          _allItems,
-                          _allItems.Where(Function(x) x.Display.ToLower().Contains(query.ToLower())).ToList())
-        Populate(filtered)
     End Sub
 
     Protected Overrides Sub Dispose(disposing As Boolean)
@@ -482,37 +671,6 @@ Public Class ComboDropdownPanel
         End If
         MyBase.Dispose(disposing)
     End Sub
-
-    Private Sub AdjustHeight()
-        Dim contentHeight As Integer = 18
-
-        For Each ctrl As Control In _list.Controls
-            contentHeight += ctrl.Height + ctrl.Margin.Bottom
-        Next
-
-        If _list.Controls.Count > 0 Then
-            contentHeight -= ITEM_GAP ' remove last gap
-        End If
-
-        ' Cap visible items
-        Dim maxHeight = MAX_VISIBLE * (ITEM_H + ITEM_GAP) - ITEM_GAP
-        contentHeight = Math.Min(contentHeight, maxHeight)
-
-        Dim totalHeight =
-            PANEL_PAD_V +
-            SearchBlockH +
-            contentHeight
-
-        ' Add scrollbar allowance if needed
-        If contentHeight >= maxHeight Then
-            totalHeight += SystemInformation.HorizontalScrollBarHeight
-        End If
-
-        Me.Height = Math.Max(totalHeight, 80) ' enforce minimum
-    End Sub
-
-
-
 End Class
 
 

@@ -17,7 +17,8 @@
     Private courierBtn As NavBtn
     Private pricingBtn As NavBtn
     Private storageBtn As NavBtn
-
+    Private sqlSearchBtn As NavBtn
+    Private backupResetBtn As NavBtn
 
     Public Shared rootNav As NavigationManager
 
@@ -26,6 +27,7 @@
         Me.Dock = DockStyle.Fill
         Me.BackColor = Color.White
         InitializeUI()
+        AddHandler Me.HandleCreated, Sub(s, e) CheckTablesAsync()
     End Sub
 
     Private Sub InitializeUI()
@@ -88,6 +90,8 @@
         courierBtn = New NavBtn("Courier", SidebarContainer.Width)
         pricingBtn = New NavBtn("Pricing", SidebarContainer.Width)
         storageBtn = New NavBtn("Storage", SidebarContainer.Width)
+        sqlSearchBtn = New NavBtn("SQL Search", SidebarContainer.Width)
+        backupResetBtn = New NavBtn("Backup & Reset", SidebarContainer.Width)
 
         Dim exitBtn As New NavBtn("Logout", SidebarContainer.Width)
 
@@ -99,9 +103,7 @@
 
         rootNav = New NavigationManager(MainContent)
 
-        ' set initial page
-        rootNav.GoToPage(New EmployeePage())
-        SetActiveNav(employeesBtn)
+
 
         AddHandler homeBtn.ButtonControl.Click,
         Sub(sender, e)
@@ -152,9 +154,32 @@
             SetActiveNav(storageBtn)
         End Sub
 
+        AddHandler sqlSearchBtn.ButtonControl.Click,
+              Sub(sender, e)
+                  rootNav.GoToPage(New SearchPage())
+                  SetActiveNav(sqlSearchBtn)
+              End Sub
+
+        AddHandler backupResetBtn.ButtonControl.Click,
+              Sub(sender, e)
+                  rootNav.GoToPage(New BackupRestorePage())
+                  SetActiveNav(backupResetBtn)
+              End Sub
+
         AddHandler exitBtn.ButtonControl.Click,
-        Sub(sender, e)
-            Form1.Instance.ShowLoginScreen()
+        Async Sub(sender, e)
+
+            Dim confirm_dlg = New BaseDialog()
+
+            DialogTypes.Apply(confirm_dlg,
+                 DialogType.Confirmation,
+                 "Confirmation",
+                 "Are you sure you want to Logout?")
+
+            If Await confirm_dlg.ShowBaseDialogAsync(Form1.Instance) = DialogResultType.Confirm Then
+                Form1.Instance.ShowLoginScreen()
+            End If
+
         End Sub
         With Sidebar.Controls
             .Add(homeBtn)
@@ -165,9 +190,11 @@
             .Add(courierBtn)
             .Add(pricingBtn)
             .Add(storageBtn)
+            .Add(sqlSearchBtn)
+            .Add(backupResetBtn)
         End With
 
-        ApplySidebarPermissions()
+
 
         SidebarContainer.Controls.Add(Sidebar)
         SidebarContainer.Controls.Add(exitBtn)
@@ -200,25 +227,37 @@
         pricingBtn.Visible = False
         storageBtn.Visible = False
         buyerBtn.Visible = False
+        courierBtn.Visible = False
+        sqlSearchBtn.Visible = False
+        backupResetBtn.Visible = False
 
         Select Case role
             Case "admin"
-                homeBtn.Visible = True
                 employeesBtn.Visible = True
                 dropOffBtn.Visible = True
                 pricingBtn.Visible = True
                 storageBtn.Visible = True
                 sellersBtn.Visible = True
                 buyerBtn.Visible = True
+                courierBtn.Visible = True
+                sqlSearchBtn.Visible = True
+                backupResetBtn.Visible = True
+                rootNav.GoToPage(New EmployeePage())
+                SetActiveNav(employeesBtn)
 
             Case "manager"
-                homeBtn.Visible = True
                 employeesBtn.Visible = True
                 storageBtn.Visible = True
                 buyerBtn.Visible = True
                 sellersBtn.Visible = True
+                courierBtn.Visible = True
+                rootNav.GoToPage(New EmployeePage())
+                SetActiveNav(employeesBtn)
+
             Case "staff"
                 dropOffBtn.Visible = True
+                rootNav.GoToPage(New DropOffRoot())
+                SetActiveNav(dropOffBtn)
         End Select
 
     End Sub
@@ -244,6 +283,62 @@
         _activeNavBtn = btn
         btn.IsActive = True
     End Sub
+
+
+    Private Async Sub CheckTablesAsync()
+
+        Dim requiredTables As String() = {
+            Employee.table_name,
+            Buyer.table_name,
+            Seller.table_name,
+            Courier.table_name,
+            Pricing.table_name,
+            Storage.table_name,
+            Item.table_name,
+            Delivery.table_name,
+            Stored.table_name
+        }
+
+        Dim existingTables As New List(Of String)
+
+        Dim sql As String =
+            "SELECT TABLE_NAME
+         FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = DATABASE()"
+
+        Using reader = Await ReadQueryAsync(sql)
+            If reader IsNot Nothing Then
+                While Await reader.ReadAsync()
+                    existingTables.Add(reader("TABLE_NAME").ToString().ToLower())
+                End While
+            End If
+        End Using
+
+        Dim missingTables = requiredTables _
+            .Where(Function(t) Not existingTables.Contains(t.ToLower())) _
+            .ToList()
+
+        If missingTables.Count > 0 Then
+
+            Dim dlg = New BaseDialog()
+            DialogTypes.Apply(dlg,
+                DialogType.Info,
+                "Database Error",
+                $"The following tables are missing:{Environment.NewLine}" &
+                String.Join(Environment.NewLine, missingTables) &
+                $"{Environment.NewLine}{Environment.NewLine}Please restore the database.")
+
+            Await dlg.ShowBaseDialogAsync(Form1.Instance)
+
+            rootNav.GoToPage(New BackupRestorePage())
+            SetActiveNav(backupResetBtn)
+
+        Else
+            ApplySidebarPermissions()
+        End If
+
+    End Sub
+
 End Class
 
 Public Class NavBtn
@@ -306,4 +401,9 @@ Public Class NavBtn
         Me.Controls.Add(ActiveBorder)
         Me.Controls.Add(BorderControl)
     End Sub
+
+
+
+
+
 End Class

@@ -333,11 +333,14 @@ Public Class DropOffClaimForm
                     _buyerNamePlaceholder.SetValue(reader("buyer_name").ToString())
                     _sellerNamePlaceholder.SetValue(reader(Seller.seller_name).ToString())
 
+                    _dropOffDate = Convert.ToDateTime(reader(Item.drop_off_date))
+
                     _baseFee = Convert.ToDecimal(reader(Pricing.base_fee))
                     _dailyFee = Convert.ToDecimal(reader(Pricing.daily_increment_fee))
 
                     _basePricingPlaceholder.SetValue(_baseFee.ToString("F2"))
                     _dailyPricingPlaceholder.SetValue(_dailyFee.ToString("F2"))
+
 
                     If reader(Item.drop_off_date) IsNot DBNull.Value Then
                         Dim dropOffDate = Convert.ToDateTime(reader(Item.drop_off_date))
@@ -364,7 +367,7 @@ Public Class DropOffClaimForm
 
     End Function
 
-    ' ── Claim query ───────────────────────────────────────────────────────────
+    ' Claim query 
 
     Private Async Sub QueryClaim()
         If Not _id.HasValue Then Exit Sub
@@ -444,8 +447,9 @@ Public Class DropOffClaimForm
                 }
 
                 Await ExecuteQueryAsync(shippingSql, shippingParams)
+            End If
 
-                GenerateClaimReceipt(
+            GenerateClaimReceipt(
                     _sellerNamePlaceholder.Value,
                     _buyerNamePlaceholder.Value,
                     _itemNamePlaceholder.Value,
@@ -459,14 +463,13 @@ Public Class DropOffClaimForm
                     claimTime
                 )
 
-            End If
-
             Return True
 
         Catch ex As Exception
             MessageBox.Show(ex.Message)
             Return False
         End Try
+
 
     End Function
 

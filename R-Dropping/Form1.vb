@@ -4,7 +4,7 @@
     Public Shared Instance As Form1
     Public mainPanel As New PrimaryPanel()
 
-    ' --- DB Config fields ---
+
     Private configContainerPanel As PrimaryPanel
     Private configSubPanel As FlowLayoutPanel
     Private serverInput As BaseInputPanel
@@ -19,7 +19,7 @@
     Private btnSubmit As BaseButton
     Private configVal As New DbConfig()
 
-    ' --- Login fields ---
+
     Private loginContainerPanel As PrimaryPanel
     Private loginSubPanel As FlowLayoutPanel
     Private emailInput As BaseInputPanel
@@ -48,7 +48,7 @@
         ShowDbConfig()
     End Sub
 
-    ' ===================== DB CONFIG SCREEN =====================
+
 
     Public Sub ShowDbConfig()
         mainPanel.Controls.Clear()
@@ -192,23 +192,24 @@
                         Return
                     End If
 
-                    ' ✅ Check if an admin account exists before going to login
                     Dim adminExists As Boolean = Await CheckAdminExists()
 
                     If adminExists Then
                         ShowLoginScreen()
                     Else
                         ShowInitialAdminSetup()
+
                     End If
+                    CheckTablesAsync()
                 End Function
             )
 
         Catch ex As Exception
-            DialogTypes.Apply(dlg,
-                DialogType.Error,
-                "Error Saving Configuration",
-                "An error occurred while saving the configuration. Please try again.")
-            dlg.ShowBaseDialog(Me)
+        DialogTypes.Apply(dlg,
+            DialogType.Error,
+            "Error Saving Configuration",
+            "An error occurred while saving the configuration. Please try again.")
+        dlg.ShowBaseDialog(Me)
         End Try
     End Sub
 
@@ -228,7 +229,7 @@
                 End If
             End Using
         Catch ex As Exception
-            ' If query fails, fall through to login to be safe
+
         End Try
 
         Return False
@@ -246,7 +247,7 @@
         Return {serverField, uidField, dbNameField, dbPortField}.All(Function(f) f.ValidateInput())
     End Function
 
-    ' ===================== LOGIN SCREEN =====================
+
 
     Public Sub ShowLoginScreen()
         mainPanel.Controls.Clear()
@@ -404,6 +405,61 @@
         End Try
     End Function
 
+
+    Private Async Sub CheckTablesAsync()
+
+        Dim requiredTables As String() = {
+            Employee.table_name,
+            Buyer.table_name,
+            Seller.table_name,
+            Courier.table_name,
+            Pricing.table_name,
+            Storage.table_name,
+            Item.table_name,
+            Delivery.table_name,
+            Stored.table_name
+        }
+
+        Dim existingTables As New List(Of String)
+
+        Dim sql As String =
+            "SELECT TABLE_NAME
+         FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = DATABASE()"
+
+        Using reader = Await ReadQueryAsync(sql)
+            If reader IsNot Nothing Then
+                While Await reader.ReadAsync()
+                    existingTables.Add(reader("TABLE_NAME").ToString().ToLower())
+                End While
+            End If
+        End Using
+
+        Dim missingTables = requiredTables _
+            .Where(Function(t) Not existingTables.Contains(t.ToLower())) _
+            .ToList()
+
+        If missingTables.Count > 0 Then
+
+            Dim dlg = New BaseDialog()
+            DialogTypes.Apply(dlg,
+                DialogType.Info,
+                "Database Error",
+                $"The following tables are missing:{Environment.NewLine}" &
+                String.Join(Environment.NewLine, missingTables) &
+                $"{Environment.NewLine}{Environment.NewLine}Please restore the database.")
+
+            Await dlg.ShowBaseDialogAsync(Form1.Instance)
+
+            nav.GoToPage(New root())
+
+            root.rootNav.GoToPage(New BackupRestorePage())
+
+        Else
+
+        End If
+
+    End Sub
 End Class
 
 '  DIALOG COMPONENT 

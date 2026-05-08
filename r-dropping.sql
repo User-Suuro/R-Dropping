@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 05, 2026 at 01:36 PM
+-- Generation Time: May 08, 2026 at 12:38 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -67,7 +67,7 @@ CREATE TABLE `courier` (
 
 INSERT INTO `courier` (`courier_id`, `first_name`, `last_name`, `vehicle_type`, `vehicle_brand`, `plate_no`, `created_at`) VALUES
 (3, 'test123', 'test123', 'Motorcyle', 'Honda', '123123', '2026-04-26 02:37:09'),
-(4, 'Test', 'Test123', 'Motorcyle', 'Suzuki', '123123', '2026-05-02 04:15:47');
+(4, 'Test', 'Test123', 'Motorcyle', 'Suzuki', '123123123', '2026-05-02 04:15:47');
 
 -- --------------------------------------------------------
 
@@ -79,7 +79,7 @@ CREATE TABLE `delivery` (
   `item_id` int(11) NOT NULL,
   `courier_id` int(11) NOT NULL,
   `shipping_fee` float NOT NULL,
-  `datetime_delivered` datetime NOT NULL
+  `datetime_delivered` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -94,6 +94,8 @@ CREATE TABLE `employee` (
   `last_name` varchar(20) NOT NULL,
   `middle_name` varchar(20) DEFAULT NULL,
   `position` varchar(20) NOT NULL,
+  `email` varchar(50) NOT NULL,
+  `password` varchar(255) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -101,10 +103,10 @@ CREATE TABLE `employee` (
 -- Dumping data for table `employee`
 --
 
-INSERT INTO `employee` (`employee_id`, `first_name`, `last_name`, `middle_name`, `position`, `created_at`) VALUES
-(4, 'Godwin', 'Galvez', 'Test', 'Admin', '2026-04-22 23:33:41'),
-(9, 'Johm Mark', 'Pardo', NULL, 'Manager', '2026-04-25 14:18:27'),
-(11, 'test123', 'test', 'test', 'Admin', '2026-05-03 23:08:18');
+INSERT INTO `employee` (`employee_id`, `first_name`, `last_name`, `middle_name`, `position`, `email`, `password`, `created_at`) VALUES
+(13, 'Godwin', 'Galvez', NULL, 'Admin', 'admin@email.com', 'pIbvhgmpVHahDBTYUgQvew==', '2026-05-08 05:21:27'),
+(14, 'John', 'Doe', NULL, 'Manager', 'manager@email.com', '3riQjedTkOD4UscAmC8qDrluvlrEUMJ1ps4T4TGmgtk=', '2026-05-08 05:42:17'),
+(15, 'Juan', 'Carlos', NULL, 'Staff', 'staff@email.com', '99fAGi7PYcRk2Be8VHmU7w==', '2026-05-08 05:58:52');
 
 -- --------------------------------------------------------
 
@@ -119,6 +121,7 @@ CREATE TABLE `item` (
   `pricing_id` int(11) NOT NULL,
   `buyer_id` int(11) NOT NULL,
   `item_name` varchar(25) NOT NULL,
+  `item_price` float NOT NULL,
   `description` varchar(50) DEFAULT NULL,
   `image_path` varchar(100) NOT NULL,
   `drop_off_date` datetime NOT NULL DEFAULT current_timestamp(),
@@ -129,11 +132,11 @@ CREATE TABLE `item` (
 -- Dumping data for table `item`
 --
 
-INSERT INTO `item` (`item_id`, `managed_by`, `seller_id`, `pricing_id`, `buyer_id`, `item_name`, `description`, `image_path`, `drop_off_date`, `pickup_date`) VALUES
-(4, 4, 4, 1, 1, '0', '', 'images\\items\\item_20260505_192736_1638.png', '2026-05-05 19:27:39', NULL),
-(5, 4, 4, 1, 1, '0', '', 'images\\items\\item_20260505_192736_1638.png', '2026-05-05 19:28:02', NULL),
-(6, 4, 4, 1, 1, '0', '', 'images\\items\\item_20260505_193043_2084.png', '2026-05-05 19:30:45', NULL),
-(7, 9, 4, 1, 3, '0', NULL, 'images\\items\\item_20260505_193443_2167.png', '2026-05-05 19:35:10', NULL);
+INSERT INTO `item` (`item_id`, `managed_by`, `seller_id`, `pricing_id`, `buyer_id`, `item_name`, `item_price`, `description`, `image_path`, `drop_off_date`, `pickup_date`) VALUES
+(30, 13, 4, 1, 1, 'Item Test 1', 12, NULL, 'images\\items\\item_20260508_052804_3203.png', '2026-05-08 05:28:05', '2026-05-08 06:27:27'),
+(31, 13, 4, 1, 1, 'tes123', 10, 'test', 'images\\items\\item_20260508_053408_9784.png', '2026-05-08 05:34:10', '2026-05-08 06:25:49'),
+(32, 13, 4, 1, 1, 'bags', 10, NULL, 'images\\items\\item_20260508_053601_4955.png', '2026-05-08 05:36:02', '2026-05-08 06:23:56'),
+(33, 13, 4, 1, 1, 'test', 8, NULL, 'images\\items\\item_20260508_063212_5734.png', '2026-05-08 06:32:14', NULL);
 
 -- --------------------------------------------------------
 
@@ -198,8 +201,7 @@ CREATE TABLE `storage_unit` (
 
 INSERT INTO `storage_unit` (`storage_unit_id`, `storage_name`, `storage_type`, `capacity_limit`) VALUES
 (1, 'Bags and Clothes', 'Cabinet', 15),
-(2, 'test', 'Basket', 5),
-(4, 'Test12345', 'Basket', 2);
+(2, 'test', 'Basket', 5);
 
 -- --------------------------------------------------------
 
@@ -218,8 +220,10 @@ CREATE TABLE `stored_on` (
 --
 
 INSERT INTO `stored_on` (`storage_unit_id`, `item_id`, `date_stored`) VALUES
-(1, 6, '2026-05-05 19:30:45'),
-(1, 7, '2026-05-05 19:35:10');
+(2, 30, '2026-05-08 05:28:05'),
+(2, 31, '2026-05-08 05:34:10'),
+(1, 32, '2026-05-08 05:36:03'),
+(1, 33, '2026-05-08 06:32:14');
 
 --
 -- Indexes for dumped tables
@@ -241,8 +245,8 @@ ALTER TABLE `courier`
 -- Indexes for table `delivery`
 --
 ALTER TABLE `delivery`
-  ADD KEY `item_id` (`item_id`),
-  ADD KEY `courier_id` (`courier_id`);
+  ADD KEY `delivery_ibfk_1` (`item_id`),
+  ADD KEY `delivery_ibfk_2` (`courier_id`);
 
 --
 -- Indexes for table `employee`
@@ -305,13 +309,13 @@ ALTER TABLE `courier`
 -- AUTO_INCREMENT for table `employee`
 --
 ALTER TABLE `employee`
-  MODIFY `employee_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `employee_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `item`
 --
 ALTER TABLE `item`
-  MODIFY `item_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `item_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `pricing`
@@ -339,8 +343,8 @@ ALTER TABLE `storage_unit`
 -- Constraints for table `delivery`
 --
 ALTER TABLE `delivery`
-  ADD CONSTRAINT `delivery_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `courier` (`courier_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `delivery_ibfk_2` FOREIGN KEY (`courier_id`) REFERENCES `item` (`item_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `delivery_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `item` (`item_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `delivery_ibfk_2` FOREIGN KEY (`courier_id`) REFERENCES `courier` (`courier_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `item`

@@ -168,7 +168,7 @@ Public Class BaseImagePanel
     Private Function ResolveFullPath(pathOrName As String) As String
         If Path.IsPathRooted(pathOrName) Then Return pathOrName
 
-        Dim slnRoot As String = FindSolutionRoot()
+        Dim slnRoot As String = Config.FindSolutionRoot()
         If slnRoot Is Nothing Then Return Nothing
 
 
@@ -180,21 +180,14 @@ Public Class BaseImagePanel
         Return Path.Combine(slnRoot, ImageFolder, ImageSubFolder, pathOrName)
     End Function
 
-    Private Shared Function FindSolutionRoot() As String
-        Dim current As New DirectoryInfo(Application.StartupPath)
-        Do While current IsNot Nothing
-            If current.GetFiles("*.sln").Length > 0 Then Return current.FullName
-            current = current.Parent
-        Loop
-        Return Nothing
-    End Function
+
 
     Public Function SaveImage() As String
         If _pictureBox.Image Is Nothing OrElse String.IsNullOrEmpty(_relativePath) Then
             Return Nothing
         End If
 
-        Dim slnRoot As String = FindSolutionRoot()
+        Dim slnRoot As String = Config.FindSolutionRoot()
         If slnRoot Is Nothing Then
             MessageBox.Show(
                 "Could not locate the solution (.sln) folder." & Environment.NewLine &
@@ -331,7 +324,7 @@ Public Class BaseImagePanel
             Return
         End If
 
-        Dim slnRoot As String = FindSolutionRoot()
+        Dim slnRoot As String = Config.FindSolutionRoot()
         If slnRoot Is Nothing Then
             OnValidationError()
             MessageBox.Show("Could not locate the solution folder.", "Load Error",

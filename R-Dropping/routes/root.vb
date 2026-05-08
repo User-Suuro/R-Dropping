@@ -91,7 +91,7 @@
         pricingBtn = New NavBtn("Pricing", SidebarContainer.Width)
         storageBtn = New NavBtn("Storage", SidebarContainer.Width)
         sqlSearchBtn = New NavBtn("SQL Search", SidebarContainer.Width)
-        backupResetBtn = New NavBtn("Backup & Reset", SidebarContainer.Width)
+        backupResetBtn = New NavBtn("Backup and Restore", SidebarContainer.Width)
 
         Dim exitBtn As New NavBtn("Logout", SidebarContainer.Width)
 

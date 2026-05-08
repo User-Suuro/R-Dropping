@@ -217,7 +217,7 @@
     </Compile>
     <Compile Include="models\DbConfig.vb" />
     <Compile Include="models\DbMap.vb" />
-    <Compile Include="routes\backup\BackupRestorePage.vb">
+    <Compile Include="routes\restore\BackupRestorePage.vb">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="routes\buyer\BuyerForm.vb">
